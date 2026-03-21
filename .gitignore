@@ -1,0 +1,9 @@
+data/
+node_modules/
+.vs/
+public/rawg-cache/
+.env
+.DS_Store
+*.log
+mudblazor-rebuild/bin/
+mudblazor-rebuild/obj/

@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relationship Planner</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero card">
+        <div class="hero-head">
+          <div>
+            <p class="eyebrow">Relationship planner</p>
+            <h1>Dates, reminders, countdowns, and a live calendar.</h1>
+            <p class="lede">
+              Keep date ideas, special occasions, reminders, countdowns, and your relationship timeline
+              saved locally so they survive restarts.
+            </p>
+          </div>
+          <div class="hero-actions">
+            <button id="theme-toggle" class="secondary theme-toggle" type="button" aria-pressed="false">
+              Dark mode
+            </button>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <span id="total-count">0</span>
+            <label>Total saved</label>
+          </div>
+          <div class="stat">
+            <span id="next-countdown">--</span>
+            <label>Next countdown</label>
+          </div>
+        </div>
+      </section>
+
+      <nav class="app-nav card" aria-label="Primary navigation">
+        <button id="planner-tab" class="secondary" type="button" aria-current="page">Planner</button>
+        <button id="settings-tab" class="secondary" type="button">Settings</button>
+      </nav>
+
+      <section id="settings-view" class="card settings-panel" hidden>
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow compact">Settings</p>
+            <h2 class="calendar-title">Planner details</h2>
+          </div>
+          <p class="status compact">Saved locally on this device.</p>
+        </div>
+
+        <div class="settings-summary card">
+          <div>
+            <p class="tag">Relationship timer</p>
+            <h3 id="relationship-summary">Set your start date</h3>
+            <p id="relationship-details" class="game-meta">This helps the app show how long you’ve been together.</p>
+          </div>
+          <div class="settings-summary-stat">
+            <span id="relationship-count">--</span>
+            <label>Time together</label>
+          </div>
+        </div>
+
+        <form id="settings-form" class="settings-form">
+          <div class="field">
+            <label for="coupleName">Couple / project name</label>
+            <input id="coupleName" name="coupleName" type="text" placeholder="Our Planner" />
+          </div>
+          <div class="field">
+            <label for="relationshipStartedAt">Relationship started</label>
+            <input id="relationshipStartedAt" name="relationshipStartedAt" type="datetime-local" />
+          </div>
+          <div class="field">
+            <label for="defaultReminderMinutes">Default reminder lead time (minutes)</label>
+            <input id="defaultReminderMinutes" name="defaultReminderMinutes" type="number" min="0" max="1440" step="5" value="60" />
+          </div>
+          <div class="field">
+            <label for="preferredTheme">Preferred theme</label>
+            <select id="preferredTheme" name="preferredTheme">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+          <div class="actions">
+            <button type="submit">Save settings</button>
+            <button id="settings-reset" type="button" class="secondary">Reset</button>
+          </div>
+          <p id="settings-status" class="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <div id="planner-view">
+      <section class="card calendar-panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow compact">Calendar</p>
+            <h2 class="calendar-title" id="calendar-title">Month</h2>
+          </div>
+          <div class="calendar-controls">
+            <button id="calendar-prev" class="secondary" type="button">Prev</button>
+            <button id="calendar-today" class="secondary" type="button">Today</button>
+            <button id="calendar-next" class="secondary" type="button">Next</button>
+          </div>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Sun</span>
+          <span>Mon</span>
+          <span>Tue</span>
+          <span>Wed</span>
+          <span>Thu</span>
+          <span>Fri</span>
+          <span>Sat</span>
+        </div>
+        <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Monthly calendar"></div>
+        <div class="calendar-footer">
+          <div>
+            <p class="calendar-date" id="calendar-selected-date">Selected day</p>
+            <p class="status compact" id="calendar-summary">Choose a date to see entries.</p>
+          </div>
+          <button id="use-selected-date" class="secondary" type="button">Use selected date</button>
+        </div>
+        <div id="calendar-agenda" class="calendar-agenda"></div>
+      </section>
+
+      <section class="card game-panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow compact">Games</p>
+            <h2 class="calendar-title">Search RAWG and plan a session</h2>
+          </div>
+          <a class="rawg-link" href="https://rawg.io/apidocs" target="_blank" rel="noreferrer">Powered by RAWG</a>
+        </div>
+        <p class="status compact">Set `RAWG_API_KEY` on the server to enable search.</p>
+
+        <div class="game-search-bar">
+          <input id="game-query" type="search" placeholder="Search a game, like Hades or Stardew Valley" />
+          <button id="game-search-btn" type="button">Search</button>
+        </div>
+        <p id="game-search-status" class="status compact" aria-live="polite">Search for a game to start a plan.</p>
+
+        <div class="game-layout">
+          <div class="game-results-wrap">
+            <div class="game-status-window card">
+              <div class="panel-head">
+                <div>
+                  <p class="eyebrow compact">Game library</p>
+                  <h3>Game status window</h3>
+                </div>
+                <p class="status compact">Saved game plans by status.</p>
+              </div>
+              <div class="game-status-grid" id="game-status-grid">
+                <div class="game-status-card" data-game-status="want_to_play">
+                  <img class="game-status-banner" data-game-status-banner="want_to_play" alt="" />
+                  <span id="games-want-to-play">0</span>
+                  <label>Want to play</label>
+                </div>
+                <div class="game-status-card" data-game-status="playing">
+                  <img class="game-status-banner" data-game-status-banner="playing" alt="" />
+                  <span id="games-playing">0</span>
+                  <label>Playing</label>
+                </div>
+                <div class="game-status-card" data-game-status="played">
+                  <img class="game-status-banner" data-game-status-banner="played" alt="" />
+                  <span id="games-played">0</span>
+                  <label>Played</label>
+                </div>
+                <div class="game-status-card" data-game-status="finished">
+                  <img class="game-status-banner" data-game-status-banner="finished" alt="" />
+                  <span id="games-finished">0</span>
+                  <label>Finished</label>
+                </div>
+              </div>
+            </div>
+            <div id="game-results" class="game-results"></div>
+          </div>
+          <aside class="game-selected card">
+            <div class="selected-cover-wrap">
+              <img id="game-selected-cover" alt="" />
+            </div>
+            <div class="selected-copy">
+              <p class="tag">Selected game</p>
+              <h3 id="game-selected-title">Nothing selected yet</h3>
+              <p id="game-selected-meta" class="game-meta">Search and pick a game to prefill the planner.</p>
+              <p id="game-selected-summary" class="details"></p>
+            </div>
+            <div class="entry-actions">
+              <button id="use-game-btn" class="secondary" type="button" disabled>Use in planner</button>
+              <button id="clear-game-btn" class="secondary" type="button">Clear</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="grid">
+        <form id="entry-form" class="card form">
+          <h2>Add something special</h2>
+          <div class="field">
+            <label for="kind">Type</label>
+            <select id="kind" name="kind">
+              <option value="date">Date idea</option>
+              <option value="reminder">Reminder</option>
+              <option value="countdown">Countdown</option>
+              <option value="memory">Memory</option>
+              <option value="got_together">Got together</option>
+              <option value="game_plan">Game plan</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="title">Title</label>
+            <input id="title" name="title" type="text" placeholder="Dinner on Friday" required />
+          </div>
+          <div class="field">
+            <label for="details">Details</label>
+            <textarea id="details" name="details" rows="4" placeholder="Location, notes, what to bring..."></textarea>
+          </div>
+          <div class="field">
+            <label for="eventDate">Planned date</label>
+            <input id="eventDate" name="eventDate" type="datetime-local" required />
+          </div>
+          <div class="field">
+            <label for="reminderAt">Reminder</label>
+            <input id="reminderAt" name="reminderAt" type="datetime-local" />
+          </div>
+          <div class="field game-plan-only" hidden>
+            <label for="gameStatus">Game status</label>
+            <select id="gameStatus" name="gameStatus">
+              <option value="want_to_play">Want to play</option>
+              <option value="playing">Playing</option>
+              <option value="played">Played</option>
+              <option value="finished">Finished</option>
+            </select>
+          </div>
+          <div class="actions">
+            <button type="submit">Save</button>
+            <button type="button" id="reset-form" class="secondary">Clear</button>
+          </div>
+          <p id="form-status" class="status" aria-live="polite"></p>
+        </form>
+
+        <section class="card list-panel">
+          <div class="panel-head">
+            <h2>Saved items</h2>
+            <button id="refresh" class="secondary" type="button">Refresh</button>
+          </div>
+          <div id="entries" class="entries"></div>
+        </section>
+      </section>
+      </div>
+    </main>
+
+    <template id="entry-template">
+      <article class="entry">
+        <div class="entry-top">
+          <div>
+            <p class="tag"></p>
+            <h3></h3>
+          </div>
+          <div class="entry-meta"></div>
+        </div>
+        <p class="details"></p>
+        <div class="entry-actions">
+          <button class="secondary edit-btn" type="button">Edit</button>
+          <button class="secondary delete-btn" type="button">Delete</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

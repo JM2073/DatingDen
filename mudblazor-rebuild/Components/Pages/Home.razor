@@ -1,0 +1,98 @@
+@page "/"
+
+<PageTitle>Relationship Planner Rebuild</PageTitle>
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" lg="8">
+        <MudPaper Elevation="1" Class="hero-panel pa-6">
+            <MudStack Spacing="3">
+                <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">Separate rebuild project</MudChip>
+                <MudText Typo="Typo.h3" Class="hero-title">A MudBlazor workspace for the relationship planner.</MudText>
+                <MudText Typo="Typo.body1" Class="hero-copy">
+                    This project is the clean rebuild path: Blazor, MudBlazor, and a richer component model for
+                    calendars, timelines, reminders, and shared planning.
+                </MudText>
+
+                <MudStack Row="true" Spacing="2" Class="hero-actions">
+                    <MudButton Href="/rebuild-plan" Variant="Variant.Filled" Color="Color.Primary">View rebuild plan</MudButton>
+                    <MudButton Href="https://mudblazor.com" Target="_blank" Variant="Variant.Outlined" Color="Color.Primary">
+                        MudBlazor docs
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+
+        <MudGrid Spacing="2" Class="metric-grid mt-2">
+            <MudItem xs="12" sm="6">
+                <MudPaper Elevation="1" Class="metric-card pa-4">
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">Focus</MudText>
+                    <MudText Typo="Typo.h4">Mobile first</MudText>
+                    <MudText Typo="Typo.body2">Built to work cleanly on phones and grow up to desktop monitors.</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudPaper Elevation="1" Class="metric-card pa-4">
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">Stack</MudText>
+                    <MudText Typo="Typo.h4">Blazor + MudBlazor</MudText>
+                    <MudText Typo="Typo.body2">Material-style components with C# rendering and structured layout.</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudItem>
+
+    <MudItem xs="12" lg="4">
+        <MudPaper Elevation="1" Class="side-panel pa-5">
+            <MudText Typo="Typo.h5">What gets rebuilt</MudText>
+            <MudDivider Class="my-3" />
+            <MudList T="string" Dense="true">
+                <MudListItem T="string" Icon="@Icons.Material.Filled.CalendarMonth">Interactive calendar</MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.NotificationsActive">Reminder flows</MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Timer">Countdown and anniversary views</MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Storage">Persistent local data</MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.PhoneIphone">Responsive mobile-first UI</MudListItem>
+            </MudList>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudPaper Elevation="1" Class="roadmap-panel pa-5">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.h5">Current rebuild milestones</MudText>
+                <MudText Typo="Typo.body2" Class="muted">
+                    This is the isolated Blazor/MudBlazor rewrite workspace, so we can migrate carefully without
+                    disturbing the working Node app.
+                </MudText>
+
+                <MudGrid Spacing="2" Class="mt-1">
+                    <MudItem xs="12" md="4">
+                        <MudCard Class="roadmap-card">
+                            <MudCardContent>
+                                <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined">Step 1</MudChip>
+                                <MudText Typo="Typo.h6" Class="mt-2">Shell and theming</MudText>
+                                <MudText Typo="Typo.body2">Done here with MudBlazor providers, a responsive drawer, and a theme.</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudCard Class="roadmap-card">
+                            <MudCardContent>
+                                <MudChip T="string" Color="Color.Secondary" Variant="Variant.Outlined">Step 2</MudChip>
+                                <MudText Typo="Typo.h6" Class="mt-2">Data model</MudText>
+                                <MudText Typo="Typo.body2">Add planner entries, anniversary records, and reminder storage.</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudCard Class="roadmap-card">
+                            <MudCardContent>
+                                <MudChip T="string" Color="Color.Tertiary" Variant="Variant.Outlined">Step 3</MudChip>
+                                <MudText Typo="Typo.h6" Class="mt-2">Calendar and detail pages</MudText>
+                                <MudText Typo="Typo.body2">Replace the placeholder with the full interactive planner experience.</MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>

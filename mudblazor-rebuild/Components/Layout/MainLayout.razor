@@ -1,0 +1,67 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Surface" Class="app-bar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Primary" Edge="Edge.Start" OnClick="ToggleDrawer" />
+        <MudText Typo="Typo.h6" Class="app-title">Relationship Planner Rebuild</MudText>
+        <MudSpacer />
+        <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">MudBlazor</MudChip>
+    </MudAppBar>
+
+    <MudDrawer Open="_drawerOpen" OpenChanged="OnDrawerChanged" Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Lg" Elevation="1">
+        <div class="drawer-brand">
+            <MudAvatar Size="Size.Medium" Color="Color.Primary" Variant="Variant.Filled">
+                <MudIcon Icon="@Icons.Material.Filled.Favorite" />
+            </MudAvatar>
+            <div>
+                <MudText Typo="Typo.subtitle1" Class="drawer-title">Relationship Planner</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Blazor rebuild workspace</MudText>
+            </div>
+        </div>
+
+        <MudNavMenu>
+            <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+            <MudNavLink Href="rebuild-plan" Icon="@Icons.Material.Filled.Construction">Rebuild plan</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="app-shell">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1976d2",
+            Secondary = "#6d4c41",
+            Surface = "#ffffff",
+            Background = "#f5f6fa",
+            AppbarBackground = "#ffffff",
+            AppbarText = "#1b1f2a",
+            DrawerBackground = "#ffffff",
+            DrawerText = "#1b1f2a",
+            TextPrimary = "#1b1f2a",
+            TextSecondary = "#667085"
+        }
+    };
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private Task OnDrawerChanged(bool value)
+    {
+        _drawerOpen = value;
+        return Task.CompletedTask;
+    }
+}

@@ -1,0 +1,90 @@
+html, body {
+    margin: 0;
+    min-height: 100%;
+    font-family: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(25, 118, 210, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(109, 76, 65, 0.10), transparent 20%),
+        #f5f6fa;
+    color: #1b1f2a;
+}
+
+a {
+    color: #1976d2;
+    text-decoration: none;
+}
+
+.app-bar {
+    border-bottom: 1px solid rgba(27, 31, 42, 0.08);
+}
+
+.app-title {
+    letter-spacing: 0.01em;
+}
+
+.app-shell {
+    padding: 24px;
+}
+
+.drawer-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 18px 12px;
+}
+
+.drawer-title {
+    margin: 0;
+}
+
+.hero-panel,
+.side-panel,
+.roadmap-panel,
+.metric-card,
+.roadmap-card {
+    border-radius: 24px;
+}
+
+.hero-panel {
+    background:
+        linear-gradient(135deg, rgba(25, 118, 210, 0.10), rgba(255, 255, 255, 0.96));
+    min-height: 100%;
+}
+
+.hero-title {
+    max-width: 11ch;
+}
+
+.hero-copy,
+.muted {
+    color: #667085;
+}
+
+.metric-grid {
+    margin-top: 4px;
+}
+
+.metric-card {
+    background: rgba(255, 255, 255, 0.92);
+    min-height: 100%;
+}
+
+.side-panel,
+.roadmap-panel {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.roadmap-card {
+    height: 100%;
+    background: #ffffff;
+}
+
+.hero-actions {
+    flex-wrap: wrap;
+}
+
+@media (min-width: 1280px) {
+    .app-shell {
+        padding: 32px;
+    }
+}
