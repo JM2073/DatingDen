@@ -10,8 +10,14 @@ The current app uses a MudBlazor-inspired visual style, and the separate Blazor/
 - Responsive web UI that works on phones and desktops
 - Wide-screen layout that uses the extra space on larger monitors
 - MudBlazor-inspired surfaces, spacing, and color treatment
+- Multiple user profiles with their own colors, themes, and reminder defaults
+- Active user switching in the app shell
+- Per-user game status tracking for shared game plans
+- Status-only game records that do not add a dated planner event
 - Create, edit, delete, and list entries
+- Dialog-based add/edit flows for planner items, day memos, and delete confirmation
 - Interactive month calendar with day selection and agenda view
+- Day memos attached to calendar dates, including a touch-friendly sketch pad
 - RAWG game search and game-plan entries
 - Game plan cards and status dashboard that show RAWG banner art where available
 - Light and dark mode toggle with saved preference
@@ -106,27 +112,72 @@ The app creates the `data/` folder automatically if it does not exist.
 
 ## Database Schema
 
-The app stores data in two local SQLite tables:
+The app stores data in several local SQLite tables:
 
 ### `entries`
 
 Columns:
 
 - `id` - auto-incrementing primary key
-- `kind` - one of `date`, `reminder`, `countdown`, `memory`, `got_together`, or `game_plan`
+- `kind` - one of `date`, `reminder`, `countdown`, `memory`, `got_together`, `game_plan`, or `game_status`
 - `title` - entry title
 - `details` - freeform notes
 - `event_date` - the main scheduled date/time in ISO format
 - `reminder_at` - optional reminder date/time in ISO format
-- `game_status` - for `game_plan` entries: `want_to_play`, `playing`, `played`, or `finished`
+- `game_status` - legacy fallback mirror for the last saved game status
 - `rawg_game_id` - RAWG game id
 - `rawg_slug` - RAWG slug
 - `rawg_background_image` - RAWG cover image URL
 - `rawg_platforms` - JSON text containing RAWG platform data
 - `rawg_metacritic` - RAWG Metacritic score
 - `rawg_released` - RAWG release date text
+- `created_by_user_id` - the user who created the entry
+- `updated_by_user_id` - the user who last updated the entry
 - `created_at` - creation timestamp
 - `updated_at` - last update timestamp
+
+### `users`
+
+Columns:
+
+- `id` - auto-incrementing primary key
+- `name` - display name
+- `created_at` - creation timestamp
+- `updated_at` - last update timestamp
+
+### `user_settings`
+
+Key/value settings stored per user.
+
+Columns:
+
+- `user_id` - user id
+- `key` - setting name
+- `value` - stored value
+- `updated_at` - last update timestamp
+
+Current keys:
+
+- `accent_color`
+- `preferred_theme`
+- `default_reminder_minutes`
+
+### `entry_user_settings`
+
+Key/value settings stored per user and per entry.
+
+Columns:
+
+- `entry_id` - entry id
+- `user_id` - user id
+- `key` - setting name
+- `value` - stored value
+- `updated_at` - last update timestamp
+
+Current key:
+
+- `game_status`
+- `game_rating`
 
 ### `settings`
 
@@ -139,8 +190,6 @@ Current settings keys:
 
 - `couple_name`
 - `relationship_started_at`
-- `default_reminder_minutes`
-- `preferred_theme`
 
 These tables are created and migrated automatically on startup so the app can keep existing data when the schema changes.
 
@@ -158,25 +207,34 @@ These tables are created and migrated automatically on startup so the app can ke
 The following routes are available:
 
 - `GET /health`
-- `GET /api/entries`
-- `GET /api/entries/:id`
+- `GET /api/users`
+- `GET /api/users/:id`
+- `POST /api/users`
+- `PUT /api/users/:id`
+- `GET /api/entries?userId=...`
+- `GET /api/entries/:id?userId=...`
 - `POST /api/entries`
 - `PUT /api/entries/:id`
 - `DELETE /api/entries/:id`
 
 Entry payload fields:
 
-- `kind` must be one of `date`, `reminder`, `countdown`, `memory`, `got_together`, or `game_plan`
+- `kind` must be one of `date`, `reminder`, `countdown`, `memory`, `got_together`, `game_plan`, or `game_status`
 - `title` is required
 - `details` is optional text
 - `eventDate` is required and must be an ISO date string
 - `reminderAt` is optional and must be an ISO date string if provided
-- When `kind` is `game_plan`, the app can also store RAWG metadata such as the game id, slug, cover image, platforms, Metacritic score, and release date
+- `userId` selects which user is creating or editing the entry
+- When `kind` is `game_plan` or `game_status`, the app can also store RAWG metadata such as the game id, slug, cover image, platforms, Metacritic score, and release date
 
 The `got_together` kind is rendered as elapsed time since that date, so it works well as a relationship anniversary or "since we started dating" counter.
 
 The `game_plan` kind is intended for planned play sessions. Use the RAWG search panel to find a game, then click `Use` to prefill the form with its data.
-Saved game plans also power the game status dashboard, which groups plans into `want_to_play`, `playing`, `played`, and `finished` buckets and shows a banner preview when one is available.
+The `game_status` kind is for status-only game records. Use the `Status only` action in RAWG search or the selected game panel when you want to track a game without creating a dated planner event.
+You can also quick-add a saved game status card back into the planner from the Games management panel when you want to turn status tracking into a dated plan.
+Saved game records power the game status dashboard for the currently active user, which groups entries into `want_to_play`, `playing`, `played`, and `finished` buckets and shows a banner preview when one is available.
+The Games section also includes a compact status management card so you can change a game's status directly without opening the planner form.
+From the Games management card, you can also open a dialog to rate a game from 1 to 5 stars; that rating is stored per user on the existing game entry.
 
 RAWG cover art is cached locally by the server in `public/rawg-cache/`, so the app can reload saved game banners without depending on the remote RAWG image URL each time.
 
@@ -186,12 +244,18 @@ Open the `Settings` tab in the top bar to manage the common details that keep th
 
 - Couple or project name
 - Relationship start date
-- Default reminder lead time in minutes
+- A live time-together summary and the next anniversary date based on the relationship start date
+
+Below that is the Users section, where each profile can set:
+
+- Display name
+- Accent color used to identify their items
 - Preferred theme
+- Default reminder lead time in minutes
 
-The settings page also shows a live time-together summary and the next anniversary date based on the relationship start date.
+Theme, color, and reminder defaults are stored per user in the SQLite database so they persist across restarts.
 
-Theme preference is stored locally in the browser, while the other settings are saved in the local SQLite database so they persist across restarts.
+Use the active user switcher in the hero area to change whose personal preferences and game statuses are being edited.
 
 ## Calendar
 
@@ -199,11 +263,13 @@ Theme preference is stored locally in the browser, while the other settings are 
 - Click any day to select it.
 - The calendar shows how many saved items fall on each day.
 - The agenda below the calendar lists the entries for the selected day.
+- Day memos can be added from the selected-day panel, and each memo shows the user who created it.
+- Add and edit actions open in dialogs, and delete actions use a confirmation dialog.
 - Use `Use selected date` to copy the chosen day into the form's date field.
 
 ## Notes
 
-- The seed data adds one example date entry the first time the database is created.
+- The database seeds a default `You` user the first time it is created so the app always has an active profile to work with.
 - The server currently uses Node's built-in `node:sqlite` module, which is marked experimental in Node 24.
 - If you want, we can swap to a more traditional SQLite package later for long-term stability.
 - RAWG cover images are cached locally in `public/rawg-cache/` and served by the app.
