@@ -18,6 +18,8 @@ public class MainActivity : Activity
     private readonly global::Android.Graphics.Color _textPrimaryColor = new(Color.ParseColor("#f5f7fb"));
     private readonly global::Android.Graphics.Color _textSecondaryColor = new(Color.ParseColor("#aab4c5"));
     private readonly global::Android.Graphics.Color _accentColor = new(Color.ParseColor("#f6a57a"));
+    private EditText? _apiBaseUrlEditText;
+    private TextView? _connectionStatusText;
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
@@ -85,6 +87,7 @@ public class MainActivity : Activity
         card.AddView(apiLabel);
 
         var apiBaseUrl = CreateField("http://192.168.1.50:5283/");
+        _apiBaseUrlEditText = apiBaseUrl;
         card.AddView(apiBaseUrl);
 
         var buttonRow = new LinearLayout(this)
@@ -100,17 +103,44 @@ public class MainActivity : Activity
 
         var saveButton = CreatePillButton("Save URL", _accentColor, Color.Black);
         var refreshButton = CreatePillButton("Refresh", _surfaceAltColor, _textPrimaryColor);
+        saveButton.Click += HandleSaveUrlClicked;
+        refreshButton.Click += HandleRefreshClicked;
 
         buttonRow.AddView(saveButton, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1));
         buttonRow.AddView(Spacer(12));
         buttonRow.AddView(refreshButton, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WrapContent, 1));
 
-        var status = CreateTextView("Waiting for API hookup.", 13, _textSecondaryColor);
+        _connectionStatusText = CreateTextView("Waiting for API hookup.", 13, _textSecondaryColor);
+        var status = _connectionStatusText;
         status.SetPadding(0, Dp(12), 0, 0);
 
         card.AddView(buttonRow);
         card.AddView(status);
         return card;
+    }
+
+    private void HandleSaveUrlClicked(object? sender, EventArgs e)
+    {
+        var value = _apiBaseUrlEditText?.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            SetConnectionStatus("Type a backend URL before saving.");
+            return;
+        }
+
+        SetConnectionStatus($"Saved URL shell value: {value}");
+    }
+
+    private void HandleRefreshClicked(object? sender, EventArgs e)
+    {
+        var currentValue = _apiBaseUrlEditText?.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(currentValue))
+        {
+            SetConnectionStatus("Refresh tapped, but no backend URL has been entered yet.");
+            return;
+        }
+
+        SetConnectionStatus($"Refresh tapped for {currentValue}");
     }
 
     private LinearLayout CreateCurrentUserCard()
@@ -205,7 +235,7 @@ public class MainActivity : Activity
         return CreateTextView(text, 12, _textSecondaryColor, TypefaceStyle.Bold);
     }
 
-    private View CreateField(string hint)
+    private EditText CreateField(string hint)
     {
         var editText = new EditText(this)
         {
@@ -224,7 +254,7 @@ public class MainActivity : Activity
         return editText;
     }
 
-    private View CreatePillButton(string text, global::Android.Graphics.Color backgroundColor, global::Android.Graphics.Color textColor)
+    private Button CreatePillButton(string text, global::Android.Graphics.Color backgroundColor, global::Android.Graphics.Color textColor)
     {
         var button = new Button(this)
         {
@@ -330,5 +360,13 @@ public class MainActivity : Activity
     private int Dp(int value)
     {
         return (int)TypedValue.ApplyDimension(ComplexUnitType.Dip, value, Resources?.DisplayMetrics ?? new DisplayMetrics());
+    }
+
+    private void SetConnectionStatus(string message)
+    {
+        if (_connectionStatusText is not null)
+        {
+            _connectionStatusText.Text = message;
+        }
     }
 }
