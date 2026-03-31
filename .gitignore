@@ -5,5 +5,9 @@ public/rawg-cache/
 .env
 .DS_Store
 *.log
+*.user
 mudblazor-rebuild/bin/
 mudblazor-rebuild/obj/
+mudblazor-rebuild/App_Data/
+RelationshipPlanner.Mobile/bin/
+RelationshipPlanner.Mobile/obj/
