@@ -14,4 +14,8 @@
     -->
     <TrimMode>full</TrimMode>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+  </PropertyGroup>
 </Project>

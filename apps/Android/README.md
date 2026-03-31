@@ -8,15 +8,15 @@ Open the solution in Visual Studio and run the `RelationshipPlanner.Android` pro
 
 ## What it does now
 
-- Shows a very small native title screen baseline.
-- Confirms the Android app launches cleanly before we add the next feature.
-- Gives us a safe starting point for gradually rebuilding the mobile experience.
+- Shows a native UI shell with placeholder cards.
+- Confirms the Android app launches cleanly before we wire any backend logic.
+- Gives us a safe starting point for gradually rebuilding the mobile experience one screen at a time.
 
 ## Notes
 
-- The first time you run it, paste your backend URL into the connection box and tap `Save URL`.
-- For a physical phone, use the LAN address of the machine running the API.
-- For an emulator, you can use the host mapping URL if needed.
+- The current screen is intentionally UI-only.
+- The backend connection box is present as a visual element, but it does not connect yet.
+- We will wire the controls to the API in the next step.
 
 ## What it is for
 
