@@ -7,3 +7,4 @@ public/rawg-cache/
 *.log
 mudblazor-rebuild/bin/
 mudblazor-rebuild/obj/
+mudblazor-rebuild/App_Data/

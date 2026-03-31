@@ -1,0 +1,933 @@
+@page "/finance"
+@implements IDisposable
+@inject PlannerRepository Repository
+@inject PlannerState State
+
+@using System.Globalization
+
+<PageTitle>Finance</PageTitle>
+
+<MudStack Spacing="3" Class="finance-stack">
+    <MudPaper Elevation="1" Class="hero-panel pa-6">
+        <MudStack Spacing="3">
+            <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">Finance</MudChip>
+            <MudText Typo="Typo.h3" Class="hero-title">Monthly money management</MudText>
+            <MudText Typo="Typo.body1" Class="hero-copy">
+                Track shared household money and personal budgets per user with a monthly sheet-style view.
+            </MudText>
+
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="finance-toolbar">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="PreviousMonth">Prev</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="GoToday">Today</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="NextMonth">Next</MudButton>
+                <MudChip T="string" Variant="Variant.Filled" Color="Color.Primary">@_monthLabel</MudChip>
+                <MudChip T="string" Variant="Variant.Outlined" Color="Color.Secondary">@_currentUserName</MudChip>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadDefaultBudgetAsync">Load defaults</MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Income</MudText>
+                <MudText Typo="Typo.h4">@FormatCurrency(_summary.BudgetedIncome)</MudText>
+                <MudText Typo="Typo.body2">Budgeted for the month.</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Planned spend</MudText>
+                <MudText Typo="Typo.h4">@FormatCurrency(_summary.BudgetedOutflow)</MudText>
+                <MudText Typo="Typo.body2">Fixed, flexible, savings, and cash.</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Net budget</MudText>
+                <MudText Typo="Typo.h4">@FormatCurrency(_summary.NetBudget)</MudText>
+                <MudText Typo="Typo.body2">Income minus planned spend.</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Actual net</MudText>
+                <MudText Typo="Typo.h4">@FormatCurrency(_summary.NetActual)</MudText>
+                <MudText Typo="Typo.body2">Based on the actual amounts entered.</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" lg="8">
+            <MudPaper Elevation="1" Class="pa-5">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.h5">Budget lines</MudText>
+                            <MudText Typo="Typo.body2" Class="muted">
+                                @(_items.Count == 0 ? "This month is empty." : $"Showing {_items.Count} lines for this month.")
+                            </MudText>
+                        </div>
+                        <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">@_summary.ItemCount</MudChip>
+                    </MudStack>
+
+                    @if (_items.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                            <MudStack Spacing="2">
+                                <MudText Typo="Typo.body2">
+                                    This month is empty. You can load the editable defaults or carry over the previous month.
+                                </MudText>
+                                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadDefaultBudgetAsync">
+                                        Load defaults
+                                    </MudButton>
+                                    @if (_hasPreviousMonthItems)
+                                    {
+                                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="CarryOverPreviousMonthAsync">
+                                            Carry over previous month
+                                        </MudButton>
+                                    }
+                                </MudStack>
+                            </MudStack>
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudTable Items="@_items"
+                                  Dense="true"
+                                  Hover="true"
+                                  Striped="true"
+                                  Bordered="true"
+                                  Breakpoint="Breakpoint.Sm"
+                                  Elevation="0"
+                                  RowsPerPage="10"
+                                  Class="finance-table">
+                            <HeaderContent>
+                                <MudTh>Line</MudTh>
+                                <MudTh>Budget</MudTh>
+                                <MudTh>Actual</MudTh>
+                                <MudTh>Remaining</MudTh>
+                                <MudTh>Due</MudTh>
+                                <MudTh>Notes</MudTh>
+                                <MudTh>Shared</MudTh>
+                                <MudTh>Actions</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Line">
+                                    @if (_editingItemId == context.Id)
+                                    {
+                                        <MudStack Spacing="2" Class="row-edit-stack">
+                                            <MudSelect T="string" @bind-Value="context.Bucket" Label="Section" Variant="Variant.Outlined">
+                                                @foreach (var financeSection in _sections)
+                                                {
+                                                    <MudSelectItem T="string" Value="@financeSection.SectionKey">@financeSection.Name</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                            <MudTextField @bind-Value="context.Name" Label="Line name" Variant="Variant.Outlined" />
+                                        </MudStack>
+                                    }
+                                    else
+                                    {
+                                        <MudStack Spacing="1">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Style="@GetBucketStyle(context.Bucket)">
+                                                    @GetBucketLabel(context.Bucket)
+                                                </MudChip>
+                                                <MudText Typo="Typo.subtitle2">@context.Name</MudText>
+                                            </MudStack>
+                                        </MudStack>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Budget">
+                                    @if (_editingItemId == context.Id)
+                                    {
+                                        <MudNumericField T="decimal" @bind-Value="context.BudgetAmount" Variant="Variant.Outlined" />
+                                    }
+                                    else
+                                    {
+                                        @FormatCurrency(context.BudgetAmount)
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Actual">
+                                    @if (_editingItemId == context.Id)
+                                    {
+                                        <MudNumericField T="decimal" @bind-Value="context.ActualAmount" Variant="Variant.Outlined" />
+                                    }
+                                    else
+                                    {
+                                        @FormatCurrency(context.ActualAmount)
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Remaining" Style="@GetRemainingStyle(context)">@FormatCurrency(GetRemaining(context))</MudTd>
+                                <MudTd DataLabel="Due">
+                                    @if (_editingItemId == context.Id)
+                                    {
+                                        <MudTextField @bind-Value="context.DueDateText" Variant="Variant.Outlined" InputType="InputType.Date" />
+                                    }
+                                    else
+                                    {
+                                        @context.DueDate?.ToString("dd MMM")
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Notes">
+                                    @if (_editingItemId == context.Id)
+                                    {
+                                        <MudTextField @bind-Value="context.Notes" Variant="Variant.Outlined" Lines="2" />
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2">@context.Notes</MudText>
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Shared">
+                                    @if (_editingItemId == context.Id)
+                                    {
+                                        <MudCheckBox @bind-Value="context.IsShared" />
+                                    }
+                                    else
+                                    {
+                                        @(context.IsShared ? "Yes" : "No")
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Actions">
+                                    <MudStack Row="true" Spacing="1">
+                                        @if (_editingItemId == context.Id)
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => SaveInlineAsync(context)">Save</MudButton>
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="CancelInlineEdit">Cancel</MudButton>
+                                        }
+                                        else
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => BeginInlineEdit(context.Id)">Edit</MudButton>
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteItemAsync(context.Id)">Delete</MudButton>
+                                        }
+                                    </MudStack>
+                                </MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Typo="Typo.body2" Class="muted">No finance lines match this month yet.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="4">
+            <MudStack Spacing="3">
+                <MudPaper Elevation="1" Class="pa-5">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.h6">@(_draft.Id == 0 ? "Add line" : "Edit line")</MudText>
+                            <MudText Typo="Typo.body2" Class="muted">Everything saved here is tied to the active user.</MudText>
+                        </div>
+                        <MudButton Variant="Variant.Outlined" OnClick="ResetDraft">Reset</MudButton>
+                    </MudStack>
+
+                    <MudStack Spacing="2" Class="mt-3">
+                        <MudTextField @bind-Value="_draft.Name" Label="Name" Variant="Variant.Outlined" />
+                        <MudSelect T="string" @bind-Value="_draft.Bucket" Label="Section" Variant="Variant.Outlined">
+                            @foreach (var financeSection in _sections)
+                            {
+                                <MudSelectItem T="string" Value="@financeSection.SectionKey">@financeSection.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudTextField @bind-Value="_draft.BudgetAmountText" Label="Budget amount" Variant="Variant.Outlined" InputType="InputType.Number" />
+                        <MudTextField @bind-Value="_draft.ActualAmountText" Label="Actual amount" Variant="Variant.Outlined" InputType="InputType.Number" />
+                        <MudTextField @bind-Value="_draft.DueDateText" Label="Due date" Variant="Variant.Outlined" InputType="InputType.Date" />
+                        <MudCheckBox @bind-Value="_draft.IsShared" Label="Shared line" />
+                        <MudTextField @bind-Value="_draft.Notes" Label="Notes" Variant="Variant.Outlined" Lines="4" />
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Save line</MudButton>
+                    </MudStack>
+                </MudPaper>
+
+                <MudPaper Elevation="1" Class="pa-5">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.h6">Default template</MudText>
+                            <MudText Typo="Typo.body2" Class="muted">
+                                These rows are used when you load defaults into an empty month.
+                            </MudText>
+                        </div>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="ResetTemplateDraft">New</MudButton>
+                    </MudStack>
+
+                    <MudStack Spacing="2" Class="mt-3">
+                        <MudSelect T="string" @bind-Value="_templateDraft.SectionKey" Label="Section" Variant="Variant.Outlined">
+                            @foreach (var financeSection in _sections)
+                            {
+                                <MudSelectItem T="string" Value="@financeSection.SectionKey">@financeSection.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudTextField @bind-Value="_templateDraft.Name" Label="Name" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="_templateDraft.BudgetAmountText" Label="Budget amount" Variant="Variant.Outlined" InputType="InputType.Number" />
+                        <MudTextField @bind-Value="_templateDraft.ActualAmountText" Label="Actual amount" Variant="Variant.Outlined" InputType="InputType.Number" />
+                        <MudCheckBox @bind-Value="_templateDraft.IsShared" Label="Shared line" />
+                        <MudTextField @bind-Value="_templateDraft.Notes" Label="Notes" Variant="Variant.Outlined" Lines="3" />
+                        <MudStack Row="true" Spacing="2">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveTemplateAsync">
+                                @(_templateDraft.Id == 0 ? "Add default line" : "Update default line")
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" OnClick="ResetTemplateDraft">Reset</MudButton>
+                        </MudStack>
+
+                        <MudDivider Class="my-2" />
+
+                        @if (_templateItems.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Class="muted">No default template lines yet.</MudText>
+                        }
+                        else
+                        {
+                            <MudTable Items="@_templateItems"
+                                      Dense="true"
+                                      Hover="true"
+                                      Striped="true"
+                                      Bordered="true"
+                                      Breakpoint="Breakpoint.Sm"
+                                      Elevation="0"
+                                      RowsPerPage="6"
+                                      Class="finance-table">
+                                <HeaderContent>
+                                    <MudTh>Section</MudTh>
+                                    <MudTh>Name</MudTh>
+                                    <MudTh>Budget</MudTh>
+                                    <MudTh>Shared</MudTh>
+                                    <MudTh>Actions</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Section">
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Style="@GetBucketStyle(context.SectionKey)">
+                                            @GetBucketLabel(context.SectionKey)
+                                        </MudChip>
+                                    </MudTd>
+                                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                                    <MudTd DataLabel="Budget">@FormatCurrency(context.BudgetAmount)</MudTd>
+                                    <MudTd DataLabel="Shared">@(context.IsShared ? "Yes" : "No")</MudTd>
+                                    <MudTd DataLabel="Actions">
+                                        <MudStack Row="true" Spacing="1">
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => EditTemplate(context)">Edit</MudButton>
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteTemplateAsync(context.Id)">Delete</MudButton>
+                                        </MudStack>
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        }
+                    </MudStack>
+                </MudPaper>
+
+                <MudPaper Elevation="1" Class="pa-5">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.h6">Sections</MudText>
+                            <MudText Typo="Typo.body2" Class="muted">Manage the default labels used in the finance sheet.</MudText>
+                        </div>
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="ResetSectionDraft">New</MudButton>
+                    </MudStack>
+
+                    <MudStack Spacing="2" Class="mt-3">
+                        <MudTextField @bind-Value="_sectionDraft.Name" Label="Section name" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="_sectionDraft.Color" Label="Section color" Variant="Variant.Outlined" InputType="InputType.Color" />
+                        <MudStack Row="true" Spacing="2">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSectionAsync">
+                                @(_sectionDraft.Id == 0 ? "Add section" : "Update section")
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" OnClick="ResetSectionDraft">Reset</MudButton>
+                        </MudStack>
+
+                        <MudDivider Class="my-2" />
+
+                        <MudStack Spacing="1">
+                            @foreach (var financeSection in _sections)
+                            {
+                                <MudPaper Elevation="0" Class="section-card pa-3" Style="@($"border-left-color:{financeSection.Color};")">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Style="@($"background:{financeSection.Color};color:#fff;")">
+                                                @financeSection.Name
+                                            </MudChip>
+                                            @if (financeSection.IsBuiltin)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Built-in</MudChip>
+                                            }
+                                        </MudStack>
+                                        <MudStack Row="true" Spacing="1">
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => EditSection(financeSection)">Edit</MudButton>
+                                            <MudButton Size="Size.Small"
+                                                       Variant="Variant.Text"
+                                                       Color="Color.Error"
+                                                       Disabled="@financeSection.IsBuiltin"
+                                                       OnClick="() => DeleteSectionAsync(financeSection.Id)">
+                                                Delete
+                                            </MudButton>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudPaper>
+                            }
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+</MudStack>
+
+@code {
+    private readonly FinanceDraft _draft = new();
+
+    private List<PlannerUser> _users = [];
+    private PlannerSettings _settings = new();
+    private PlannerUser _activeUser = new() { Name = "You", AccentColor = "#c3252d" };
+    private List<FinanceSection> _sections = [];
+    private List<FinanceItem> _items = [];
+    private List<FinanceTemplateItem> _templateItems = [];
+    private FinanceSummary _summary = new();
+    private DateOnly _selectedMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private string _currentUserName = "Unknown user";
+    private readonly SectionDraft _sectionDraft = new();
+    private readonly TemplateDraft _templateDraft = new();
+    private int? _editingItemId;
+    private bool _hasPreviousMonthItems;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnPlannerStateChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _users = (await Repository.GetUsersAsync()).ToList();
+        _settings = await Repository.GetSettingsAsync();
+
+        var currentUserId = GetCurrentUserId();
+        _activeUser = _users.FirstOrDefault(user => user.Id == currentUserId) ?? _users.FirstOrDefault() ?? _activeUser;
+        _currentUserName = _activeUser.Name;
+        _sections = (await Repository.GetFinanceSectionsAsync(currentUserId)).ToList();
+        _templateItems = (await Repository.GetFinanceTemplatesAsync(currentUserId)).ToList();
+
+        _items = (await Repository.GetFinanceItemsAsync(currentUserId, _selectedMonth)).ToList();
+        _summary = await Repository.GetFinanceSummaryAsync(currentUserId, _selectedMonth);
+        _hasPreviousMonthItems = await HasPreviousMonthItemsAsync(currentUserId);
+
+        await EnsureDefaultBudgetAsync(currentUserId);
+        _items = (await Repository.GetFinanceItemsAsync(currentUserId, _selectedMonth)).ToList();
+        _summary = await Repository.GetFinanceSummaryAsync(currentUserId, _selectedMonth);
+        _hasPreviousMonthItems = await HasPreviousMonthItemsAsync(currentUserId);
+
+        if (_draft.UserId == 0)
+        {
+            _draft.UserId = currentUserId;
+        }
+
+        if (string.IsNullOrWhiteSpace(_sectionDraft.Color))
+        {
+            _sectionDraft.Color = _settings.DateIdeaColor;
+        }
+
+        if (_templateDraft.Id == 0 && string.IsNullOrWhiteSpace(_templateDraft.Name) && string.IsNullOrWhiteSpace(_templateDraft.BudgetAmountText) && string.IsNullOrWhiteSpace(_templateDraft.ActualAmountText))
+        {
+            ResetTemplateDraft();
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task PreviousMonth()
+    {
+        _selectedMonth = _selectedMonth.AddMonths(-1);
+        ResetDraft();
+        await LoadAsync();
+    }
+
+    private async Task NextMonth()
+    {
+        _selectedMonth = _selectedMonth.AddMonths(1);
+        ResetDraft();
+        await LoadAsync();
+    }
+
+    private async Task GoToday()
+    {
+        _selectedMonth = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        ResetDraft();
+        await LoadAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_draft.Name))
+        {
+            return;
+        }
+
+        var currentUserId = GetCurrentUserId();
+        var saved = await Repository.SaveFinanceItemAsync(new FinanceItem
+        {
+            Id = _draft.Id,
+            UserId = _draft.UserId == 0 ? currentUserId : _draft.UserId,
+            MonthKey = GetMonthKey(_selectedMonth),
+            Bucket = _draft.Bucket,
+            Name = _draft.Name.Trim(),
+            BudgetAmount = ParseMoney(_draft.BudgetAmountText),
+            ActualAmount = ParseMoney(_draft.ActualAmountText),
+            DueDate = _draft.DueDate,
+            Notes = _draft.Notes.Trim(),
+            IsShared = _draft.IsShared,
+            SortOrder = _draft.SortOrder
+        });
+
+        _draft.Id = saved.Id;
+        await LoadAsync();
+        ResetDraft();
+    }
+
+    private async Task DeleteItemAsync(int id)
+    {
+        await Repository.DeleteFinanceItemAsync(id);
+        _editingItemId = null;
+        await LoadAsync();
+    }
+
+    private void BeginInlineEdit(int id)
+    {
+        _editingItemId = id;
+    }
+
+    private async Task SaveInlineAsync(FinanceItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.Name))
+        {
+            return;
+        }
+
+        item.Name = item.Name.Trim();
+        item.Notes = item.Notes.Trim();
+        await Repository.SaveFinanceItemAsync(item);
+        _editingItemId = null;
+        await LoadAsync();
+    }
+
+    private async Task CancelInlineEdit()
+    {
+        _editingItemId = null;
+        await LoadAsync();
+    }
+
+    private void EditSection(FinanceSection section)
+    {
+        _sectionDraft.Id = section.Id;
+        _sectionDraft.Name = section.Name;
+        _sectionDraft.Color = section.Color;
+        _sectionDraft.SortOrder = section.SortOrder;
+        _sectionDraft.IsBuiltin = section.IsBuiltin;
+    }
+
+    private async Task SaveSectionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_sectionDraft.Name))
+        {
+            return;
+        }
+
+        var currentUserId = GetCurrentUserId();
+        var existing = _sections.FirstOrDefault(section => section.Id == _sectionDraft.Id);
+        var key = _sectionDraft.Id == 0
+            ? SlugifySectionKey(_sectionDraft.Name)
+            : existing?.SectionKey ?? SlugifySectionKey(_sectionDraft.Name);
+
+        await Repository.SaveFinanceSectionAsync(new FinanceSection
+        {
+            Id = _sectionDraft.Id,
+            UserId = currentUserId,
+            SectionKey = key,
+            Name = _sectionDraft.Name.Trim(),
+            Color = string.IsNullOrWhiteSpace(_sectionDraft.Color) ? _settings.DateIdeaColor : _sectionDraft.Color,
+            SortOrder = _sectionDraft.SortOrder,
+            IsBuiltin = _sectionDraft.Id == 0 ? false : _sectionDraft.IsBuiltin
+        });
+
+        _sectionDraft.Name = string.Empty;
+        _sectionDraft.Color = _settings.DateIdeaColor;
+        _sectionDraft.SortOrder = _sections.Count;
+        await LoadAsync();
+    }
+
+    private async Task DeleteSectionAsync(int id)
+    {
+        var section = _sections.FirstOrDefault(x => x.Id == id);
+        if (section is null || section.IsBuiltin)
+        {
+            return;
+        }
+
+        var fallback = _sections.FirstOrDefault(x => x.SectionKey == "fixed") ?? _sections.FirstOrDefault();
+        if (fallback is not null)
+        {
+            await Repository.ReassignFinanceItemsAsync(GetCurrentUserId(), section.SectionKey, fallback.SectionKey);
+        }
+
+        await Repository.DeleteFinanceSectionAsync(id);
+        ResetSectionDraft();
+        await LoadAsync();
+    }
+
+    private void EditItem(FinanceItem item)
+    {
+        _draft.Id = item.Id;
+        _draft.UserId = item.UserId;
+        _draft.Name = item.Name;
+        _draft.Bucket = item.Bucket;
+        _draft.BudgetAmountText = item.BudgetAmount.ToString(CultureInfo.CurrentCulture);
+        _draft.ActualAmountText = item.ActualAmount.ToString(CultureInfo.CurrentCulture);
+        _draft.DueDate = item.DueDate;
+        _draft.IsShared = item.IsShared;
+        _draft.Notes = item.Notes;
+        _draft.SortOrder = item.SortOrder;
+    }
+
+    private async Task LoadDefaultBudgetAsync()
+    {
+        await SeedTemplateAsync(force: true);
+        await LoadAsync();
+    }
+
+    private void ResetSectionDraft()
+    {
+        _sectionDraft.Id = 0;
+        _sectionDraft.Name = string.Empty;
+        _sectionDraft.Color = _settings.DateIdeaColor;
+        _sectionDraft.SortOrder = _sections.Count;
+        _sectionDraft.IsBuiltin = false;
+    }
+
+    private void ResetDraft()
+    {
+        _draft.Id = 0;
+        _draft.Name = string.Empty;
+        _draft.Bucket = _sections.FirstOrDefault(section => section.SectionKey == "fixed")?.SectionKey
+            ?? _sections.FirstOrDefault()?.SectionKey
+            ?? "fixed";
+        _draft.BudgetAmountText = string.Empty;
+        _draft.ActualAmountText = string.Empty;
+        _draft.DueDate = null;
+        _draft.Notes = string.Empty;
+        _draft.IsShared = false;
+        _draft.SortOrder = _items.Count;
+        _draft.MonthKey = GetMonthKey(_selectedMonth);
+    }
+
+    private int GetCurrentUserId()
+    {
+        return State.SelectedUserId ?? _settings.ActiveUserId;
+    }
+
+    private static string GetMonthKey(DateOnly month) => new DateOnly(month.Year, month.Month, 1).ToString("yyyy-MM-dd");
+
+    private static decimal ParseMoney(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return 0m;
+        }
+
+        return decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out var parsed)
+            ? parsed
+            : 0m;
+    }
+
+    private static string FormatCurrency(decimal value) => value.ToString("C", CultureInfo.CurrentCulture);
+
+    private async Task EnsureDefaultBudgetAsync(int currentUserId)
+    {
+        var currentMonth = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        if (_selectedMonth != currentMonth || _items.Count > 0)
+        {
+            return;
+        }
+
+        if (await Repository.HasFinanceImportAsync(currentUserId, _selectedMonth, "finance-template"))
+        {
+            return;
+        }
+
+        await SeedTemplateAsync(force: false);
+    }
+
+    private async Task<bool> HasPreviousMonthItemsAsync(int userId)
+    {
+        var previousMonth = _selectedMonth.AddMonths(-1);
+        var previousItems = await Repository.GetFinanceItemsAsync(userId, previousMonth);
+        return previousItems.Count > 0;
+    }
+
+    private async Task CarryOverPreviousMonthAsync()
+    {
+        var currentUserId = GetCurrentUserId();
+        var previousMonth = _selectedMonth.AddMonths(-1);
+        var previousItems = (await Repository.GetFinanceItemsAsync(currentUserId, previousMonth)).ToList();
+        if (previousItems.Count == 0)
+        {
+            return;
+        }
+
+        var existingKeys = _items.Select(item => $"{item.Bucket}:{item.Name}").ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var nextSort = _items.Count;
+
+        foreach (var item in previousItems)
+        {
+            var key = $"{item.Bucket}:{item.Name}";
+            if (existingKeys.Contains(key))
+            {
+                continue;
+            }
+
+            await Repository.SaveFinanceItemAsync(new FinanceItem
+            {
+                UserId = currentUserId,
+                MonthKey = GetMonthKey(_selectedMonth),
+                Bucket = item.Bucket,
+                Name = item.Name,
+                BudgetAmount = item.BudgetAmount,
+                ActualAmount = 0m,
+                DueDate = item.DueDate,
+                Notes = item.Notes,
+                IsShared = item.IsShared,
+                SortOrder = nextSort++
+            });
+        }
+
+        await Repository.RecordFinanceImportAsync(currentUserId, _selectedMonth, "carry-over");
+        await LoadAsync();
+    }
+
+    private async Task SeedTemplateAsync(bool force)
+    {
+        var currentUserId = GetCurrentUserId();
+        var existing = _items
+            .Select(item => $"{item.Bucket}:{item.Name}")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var templates = _templateItems.Count > 0
+            ? _templateItems
+            : (await Repository.GetFinanceTemplatesAsync(currentUserId)).ToList();
+
+        foreach (var row in templates)
+        {
+            var key = $"{row.SectionKey}:{row.Name}";
+            if (existing.Contains(key))
+            {
+                continue;
+            }
+
+            await Repository.SaveFinanceItemAsync(new FinanceItem
+            {
+                UserId = currentUserId,
+                MonthKey = GetMonthKey(_selectedMonth),
+                Bucket = row.SectionKey,
+                Name = row.Name,
+                BudgetAmount = row.BudgetAmount,
+                ActualAmount = row.ActualAmount,
+                Notes = row.Notes,
+                IsShared = row.IsShared,
+                SortOrder = row.SortOrder
+            });
+        }
+
+        if (force || !await Repository.HasFinanceImportAsync(currentUserId, _selectedMonth, "finance-template"))
+        {
+            await Repository.RecordFinanceImportAsync(currentUserId, _selectedMonth, "finance-template");
+        }
+    }
+
+    private void EditTemplate(FinanceTemplateItem template)
+    {
+        _templateDraft.Id = template.Id;
+        _templateDraft.UserId = template.UserId;
+        _templateDraft.SectionKey = template.SectionKey;
+        _templateDraft.Name = template.Name;
+        _templateDraft.BudgetAmountText = template.BudgetAmount.ToString(CultureInfo.CurrentCulture);
+        _templateDraft.ActualAmountText = template.ActualAmount.ToString(CultureInfo.CurrentCulture);
+        _templateDraft.Notes = template.Notes;
+        _templateDraft.IsShared = template.IsShared;
+        _templateDraft.SortOrder = template.SortOrder;
+    }
+
+    private async Task SaveTemplateAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_templateDraft.Name))
+        {
+            return;
+        }
+
+        var currentUserId = GetCurrentUserId();
+        await Repository.SaveFinanceTemplateAsync(new FinanceTemplateItem
+        {
+            Id = _templateDraft.Id,
+            UserId = currentUserId,
+            SectionKey = _templateDraft.SectionKey,
+            Name = _templateDraft.Name.Trim(),
+            BudgetAmount = ParseMoney(_templateDraft.BudgetAmountText),
+            ActualAmount = ParseMoney(_templateDraft.ActualAmountText),
+            Notes = _templateDraft.Notes.Trim(),
+            IsShared = _templateDraft.IsShared,
+            SortOrder = _templateDraft.SortOrder
+        });
+
+        ResetTemplateDraft();
+        await LoadAsync();
+    }
+
+    private async Task DeleteTemplateAsync(int id)
+    {
+        await Repository.DeleteFinanceTemplateAsync(id);
+        if (_templateDraft.Id == id)
+        {
+            ResetTemplateDraft();
+        }
+
+        await LoadAsync();
+    }
+
+    private void ResetTemplateDraft()
+    {
+        _templateDraft.Id = 0;
+        _templateDraft.UserId = GetCurrentUserId();
+        _templateDraft.SectionKey = _sections.FirstOrDefault(section => section.SectionKey == "fixed")?.SectionKey
+            ?? _sections.FirstOrDefault()?.SectionKey
+            ?? "fixed";
+        _templateDraft.Name = string.Empty;
+        _templateDraft.BudgetAmountText = string.Empty;
+        _templateDraft.ActualAmountText = string.Empty;
+        _templateDraft.Notes = string.Empty;
+        _templateDraft.IsShared = false;
+        _templateDraft.SortOrder = _templateItems.Count;
+    }
+
+    private static decimal GetRemaining(FinanceItem item) => item.BudgetAmount - item.ActualAmount;
+
+    private string GetRemainingStyle(FinanceItem item)
+    {
+        return GetRemaining(item) < 0
+            ? "color:#c3252d;font-weight:700;"
+            : string.Empty;
+    }
+
+    private string GetBucketLabel(string bucket)
+    {
+        var section = _sections.FirstOrDefault(x => x.SectionKey == bucket);
+        if (section is not null)
+        {
+            return section.Name;
+        }
+
+        return bucket switch
+        {
+            "income" => "Income",
+            "fixed" => "Fixed costs",
+            "flexible" => "Flexible spending",
+            "savings" => "Savings",
+            "cash" => "Cash buffer",
+            _ => "Line"
+        };
+    }
+
+    private string GetBucketStyle(string bucket) => bucket switch
+    {
+        _ => GetSectionColor(bucket)
+    };
+
+    private string GetSectionColor(string bucket)
+    {
+        var section = _sections.FirstOrDefault(x => x.SectionKey == bucket);
+        if (section is not null)
+        {
+            return $"background:{section.Color};color:#fff;";
+        }
+
+        return bucket switch
+        {
+            "income" => $"background:{_settings.PlayedColor};color:#fff;",
+            "fixed" => $"background:{_settings.DateIdeaColor};color:#fff;",
+            "flexible" => $"background:{_settings.MemoryColor};color:#fff;",
+            "savings" => $"background:{_settings.CountdownColor};color:#fff;",
+            "cash" => $"background:{_settings.GotTogetherColor};color:#fff;",
+            _ => $"background:{_settings.DateIdeaColor};color:#fff;"
+        };
+    }
+
+    private static string SlugifySectionKey(string value)
+    {
+        var letters = value.Trim().ToLowerInvariant().Where(ch => char.IsLetterOrDigit(ch) || ch == ' ').ToArray();
+        var normalized = new string(letters).Replace(' ', '-');
+        return string.IsNullOrWhiteSpace(normalized) ? $"section-{Guid.NewGuid():N}" : normalized;
+    }
+
+    private string _monthLabel => _selectedMonth.ToString("MMMM yyyy");
+
+    private void OnPlannerStateChanged()
+    {
+        _ = LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        State.Changed -= OnPlannerStateChanged;
+    }
+
+    private sealed class FinanceDraft
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public string MonthKey { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Bucket { get; set; } = "fixed";
+        public string BudgetAmountText { get; set; } = string.Empty;
+        public string ActualAmountText { get; set; } = string.Empty;
+        public DateOnly? DueDate { get; set; }
+        public string Notes { get; set; } = string.Empty;
+        public bool IsShared { get; set; }
+        public int SortOrder { get; set; }
+
+        public string? DueDateText
+        {
+            get => DueDate?.ToString("yyyy-MM-dd");
+            set
+            {
+                if (DateOnly.TryParse(value, out var parsed))
+                {
+                    DueDate = parsed;
+                }
+                else
+                {
+                    DueDate = null;
+                }
+            }
+        }
+    }
+
+    private sealed class SectionDraft
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Color { get; set; } = "#c3252d";
+        public int SortOrder { get; set; }
+        public bool IsBuiltin { get; set; }
+    }
+
+    private sealed class TemplateDraft
+    {
+        public int Id { get; set; }
+        public int UserId { get; set; }
+        public string SectionKey { get; set; } = "fixed";
+        public string Name { get; set; } = string.Empty;
+        public string BudgetAmountText { get; set; } = string.Empty;
+        public string ActualAmountText { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+        public bool IsShared { get; set; }
+        public int SortOrder { get; set; }
+    }
+}

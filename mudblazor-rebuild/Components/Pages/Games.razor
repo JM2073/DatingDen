@@ -1,0 +1,820 @@
+@page "/games"
+@implements IDisposable
+@inject PlannerRepository Repository
+@inject PlannerState State
+@inject GameIntegrationService GameCatalog
+
+<PageTitle>Games</PageTitle>
+
+<MudStack Spacing="3">
+    <MudPaper Elevation="1" Class="pa-5">
+        <MudText Typo="Typo.h4">Games</MudText>
+        <MudText Typo="Typo.body1" Class="muted mt-2">
+            Track what each user wants to play, is playing, has played, or has finished.
+        </MudText>
+    </MudPaper>
+
+    <MudPaper Elevation="1" Class="pa-5">
+        <MudStack Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <div>
+                    <MudText Typo="Typo.h6">Search RAWG</MudText>
+                    <MudText Typo="Typo.body2" Class="muted">Pick a game from RAWG and optionally check Steam ownership for the active user.</MudText>
+                </div>
+                @if (!_hasRawgKey)
+                {
+                    <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled">RAWG API key missing</MudChip>
+                }
+            </MudStack>
+
+            <MudStack Row="true" Spacing="2">
+                <MudTextField @bind-Value="_searchQuery"
+                              Label="Search title"
+                              Variant="Variant.Outlined"
+                              Class="flex-grow-1" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync" Disabled="@_searching">
+                    @(_searching ? "Searching..." : "Search")
+                </MudButton>
+            </MudStack>
+
+            @if (!string.IsNullOrWhiteSpace(_searchMessage))
+            {
+                <MudAlert Severity="@_searchMessageSeverity" Variant="Variant.Outlined">
+                    @_searchMessage
+                </MudAlert>
+            }
+
+            @if (_searchResults.Count > 0)
+            {
+                <MudGrid Spacing="2">
+                    @foreach (var game in _searchResults)
+                    {
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudPaper Elevation="0" Class="game-card pa-4">
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        @if (!string.IsNullOrWhiteSpace(game.CoverUrl))
+                                        {
+                                            <img class="game-cover" src="@game.CoverUrl" alt="@game.Name" />
+                                        }
+                                        else
+                                        {
+                                            <div class="game-cover game-cover-placeholder">??</div>
+                                        }
+                                        <div class="game-card-copy">
+                                            <MudText Typo="Typo.subtitle1">@game.Name</MudText>
+                                            <MudText Typo="Typo.body2" Class="muted">@(game.Released ?? "Release unknown")</MudText>
+                                        </div>
+                                    </MudStack>
+
+                                    <MudText Typo="Typo.body2">@(!string.IsNullOrWhiteSpace(game.Platforms) ? game.Platforms : "No platform data")</MudText>
+
+                                    <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">RAWG</MudChip>
+                                        @if (game.SteamAppId.HasValue)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">
+                                                Steam app @game.SteamAppId
+                                            </MudChip>
+                                        }
+                                    </MudStack>
+
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               OnClick="() => UseSearchResultAsync(game)">
+                                        Use this game
+                                    </MudButton>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+        </MudStack>
+    </MudPaper>
+
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Want to play</MudText>
+                <MudText Typo="Typo.h4">@_summary.WantToPlayGames</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Playing</MudText>
+                <MudText Typo="Typo.h4">@_summary.PlayingGames</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Played</MudText>
+                <MudText Typo="Typo.h4">@_summary.PlayedGames</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="3">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Finished</MudText>
+                <MudText Typo="Typo.h4">@_summary.FinishedGames</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Elevation="1" Class="pa-5">
+        <MudExpansionPanels MultiExpansion="true">
+            <MudExpansionPanel Text="@($"Steam library ({_steamLibraryCount})")">
+                @if (!State.SelectedUserId.HasValue || string.IsNullOrWhiteSpace(_activeUserSteamId))
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        Link Steam to the current user in Settings to populate this section automatically.
+                    </MudAlert>
+                }
+                else if (_steamLibraryGames.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        Steam returned no owned games for this user, or the library is private.
+                    </MudAlert>
+                }
+                else
+                {
+                    var steamLibrary = FilteredSteamLibrary.ToList();
+
+                    <MudStack Spacing="2" Class="mt-2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="steam-library-header">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body2" Class="muted">@_steamLibraryMessage</MudText>
+                                <MudText Typo="Typo.caption" Class="muted">
+                                    Browsing @steamLibrary.Count of @_steamLibraryCount owned games
+                                </MudText>
+                            </MudStack>
+
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">
+                                    @_steamLibraryCount games
+                                </MudChip>
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           Disabled="@_refreshingSteamLibrary"
+                                           OnClick="RefreshSteamLibraryAsync">
+                                    @(_refreshingSteamLibrary ? "Refreshing..." : "Refresh library")
+                                </MudButton>
+                            </MudStack>
+                        </MudStack>
+
+                        <MudTextField @bind-Value="_steamLibraryFilter"
+                                      Label="Filter Steam library"
+                                      Variant="Variant.Outlined"
+                                      Immediate="true"
+                                      Placeholder="Search by title or app id"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search" />
+
+                        @if (_refreshingSteamLibrary)
+                        {
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-2" />
+                        }
+
+                        <MudTable Items="@steamLibrary"
+                                  Dense="true"
+                                  Hover="true"
+                                  Striped="true"
+                                  Bordered="true"
+                                  Breakpoint="Breakpoint.Sm"
+                                  Elevation="0"
+                                  RowsPerPage="10"
+                                  Class="steam-library-table">
+                            <HeaderContent>
+                                <MudTh>Game</MudTh>
+                                <MudTh>App ID</MudTh>
+                                <MudTh>Playtime</MudTh>
+                                <MudTh>Last 2 weeks</MudTh>
+                                <MudTh>Action</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Game">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <img class="steam-library-image" src="@GetSteamLibraryImage(context)" alt="@context.Name" />
+                                        <MudStack Spacing="0" Class="steam-library-copy">
+                                            <MudText Typo="Typo.subtitle2">@context.Name</MudText>
+                                            <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                                                @if (!string.IsNullOrWhiteSpace(context.IconHash))
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Icon available</MudChip>
+                                                }
+                                                @if (context.PlaytimeForever > 0)
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">
+                                                        @FormatSteamTime(context.PlaytimeForever)
+                                                    </MudChip>
+                                                }
+                                            </MudStack>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudTd>
+                                <MudTd DataLabel="App ID">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                                        @context.AppId
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="Playtime">
+                                    @FormatSteamTime(context.PlaytimeForever)
+                                </MudTd>
+                                <MudTd DataLabel="Last 2 weeks">
+                                    @(context.Playtime2Weeks > 0 ? FormatSteamTime(context.Playtime2Weeks) : "None")
+                                </MudTd>
+                                <MudTd DataLabel="Action">
+                                    <MudButton Size="Size.Small"
+                                               Variant="Variant.Filled"
+                                               Color="Color.Primary"
+                                               OnClick="() => QuickAddSteamGameAsync(context)">
+                                        Quick add
+                                    </MudButton>
+                                </MudTd>
+                            </RowTemplate>
+                            <PagerContent>
+                                <MudTablePager />
+                            </PagerContent>
+                            <NoRecordsContent>
+                                <MudText Typo="Typo.body2" Class="muted">No owned games match that filter.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudStack>
+                }
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+    </MudPaper>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" lg="4">
+            <MudPaper Elevation="1" Class="pa-5">
+                <MudText Typo="Typo.h6">Add a game</MudText>
+                <MudStack Spacing="2" Class="mt-3">
+                    <MudTextField @bind-Value="_draft.GameTitle" Label="Game title" Variant="Variant.Outlined" />
+                    <MudTextField @bind-Value="_draft.GameCoverUrl" Label="Cover URL" Variant="Variant.Outlined" />
+                    <MudSelect T="string" @bind-Value="_draft.GameStatus" Label="Game status" Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("want_to_play")">Want to play</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("playing")">Playing</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("played")">Played</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("finished")">Finished</MudSelectItem>
+                    </MudSelect>
+                    <MudSelect T="string" @bind-Value="_draft.Kind" Label="Save type" Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("game_status")">Status only</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("game_plan")">Planner entry</MudSelectItem>
+                    </MudSelect>
+                    <MudTextField @bind-Value="_draft.TargetDateText"
+                                  Label="Planned date (optional)"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Date" />
+                    <MudTextField @bind-Value="_draft.SteamAppIdText"
+                                  Label="Steam app ID (optional)"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Number" />
+                    <MudSelect T="int" @bind-Value="_draft.RatingValue" Label="Rating" Variant="Variant.Outlined">
+                        <MudSelectItem T="int" Value="0">Unrated</MudSelectItem>
+                        <MudSelectItem T="int" Value="1">1</MudSelectItem>
+                        <MudSelectItem T="int" Value="2">2</MudSelectItem>
+                        <MudSelectItem T="int" Value="3">3</MudSelectItem>
+                        <MudSelectItem T="int" Value="4">4</MudSelectItem>
+                        <MudSelectItem T="int" Value="5">5</MudSelectItem>
+                    </MudSelect>
+                    <MudTextField @bind-Value="_draft.Notes" Label="Notes" Variant="Variant.Outlined" Lines="4" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Save game</MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="8">
+            <MudPaper Elevation="1" Class="pa-5">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.h6">Saved games</MudText>
+                    <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled">@_games.Count</MudChip>
+                </MudStack>
+
+                @if (_games.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-3">
+                        Add a game on the left to start the board.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudGrid Spacing="2" Class="mt-2">
+                        @foreach (var game in _games)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudPaper Elevation="0" Class="game-card pa-4">
+                                    <MudStack Spacing="2">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            @if (!string.IsNullOrWhiteSpace(game.GameCoverUrl))
+                                            {
+                                                <img class="game-cover" src="@game.GameCoverUrl" alt="@game.GameTitle" />
+                                            }
+                                            else
+                                            {
+                                                <div class="game-cover game-cover-placeholder">??</div>
+                                            }
+                                            <div class="game-card-copy">
+                                                <MudText Typo="Typo.subtitle1">@game.GameTitle</MudText>
+                                                <MudText Typo="Typo.body2" Class="muted">@GetUserName(game.UserId)</MudText>
+                                            </div>
+                                        </MudStack>
+
+                                        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Style="@GetGameStatusStyle(game.GameStatus)">
+                                                @GetGameStatusLabel(game.GameStatus)
+                                            </MudChip>
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Style="@GetKindChipStyle(game.Kind)">
+                                                @(game.Kind == "game_plan" ? "Planner entry" : "Status only")
+                                            </MudChip>
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text">
+                                                @(game.GameRating is null ? "Unrated" : $"{game.GameRating}/5")
+                                            </MudChip>
+                                            @if (game.GameSteamAppId.HasValue)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                                                    Steam app @game.GameSteamAppId
+                                                </MudChip>
+                                            }
+                                            @if (game.SteamOwned is true)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">
+                                                    In Steam library
+                                                </MudChip>
+                                            }
+                                            else if (game.SteamOwned is false)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">
+                                                    Not in Steam library
+                                                </MudChip>
+                                            }
+                                        </MudStack>
+
+                                        <MudText Typo="Typo.body2">@game.Notes</MudText>
+
+                                        <MudStack Spacing="2">
+                                            <MudSelect T="string" Value="@game.GameStatus" ValueChanged="@(value => UpdateStatusAsync(game, value))" Label="Change status" Variant="Variant.Outlined">
+                                                <MudSelectItem T="string" Value="@("want_to_play")">Want to play</MudSelectItem>
+                                                <MudSelectItem T="string" Value="@("playing")">Playing</MudSelectItem>
+                                                <MudSelectItem T="string" Value="@("played")">Played</MudSelectItem>
+                                                <MudSelectItem T="string" Value="@("finished")">Finished</MudSelectItem>
+                                            </MudSelect>
+
+                                            <MudStack Row="true" Spacing="1">
+                                                @if (game.GameSteamAppId.HasValue && !string.IsNullOrWhiteSpace(_activeUserSteamId))
+                                                {
+                                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="RefreshSteamLibraryAsync">
+                                                        Refresh Steam library
+                                                    </MudButton>
+                                                }
+                                                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="() => QuickAddToPlannerAsync(game)">
+                                                    Quick add to planner
+                                                </MudButton>
+                                                <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteAsync(game.Id)">
+                                                    Delete
+                                                </MudButton>
+                                            </MudStack>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudStack>
+
+@code {
+    private readonly GameDraft _draft = new();
+    private List<PlannerUser> _users = [];
+    private List<PlannerEntry> _games = [];
+    private PlannerSummary _summary = new();
+    private PlannerSettings _settings = new();
+    private PlannerUser _activeUser = new() { Name = "You", AccentColor = "#c3252d" };
+    private string _activeUserSteamId = string.Empty;
+    private int _currentUserId;
+    private bool _hasRawgKey;
+    private bool _hasSteamKey;
+    private HashSet<int> _ownedSteamAppIds = [];
+    private bool _refreshingSteamLibrary;
+    private List<SteamOwnedGameSummary> _steamLibraryGames = [];
+    private string _steamLibraryFilter = string.Empty;
+    private string _steamLibraryMessage = string.Empty;
+    private int _steamLibraryCount;
+    private string _searchQuery = string.Empty;
+    private List<GameSearchResult> _searchResults = [];
+    private bool _searching;
+    private string _searchMessage = string.Empty;
+    private Severity _searchMessageSeverity = Severity.Info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnPlannerStateChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _users = (await Repository.GetUsersAsync()).ToList();
+        var settings = await Repository.GetSettingsAsync();
+        _settings = settings;
+        var currentUserId = GetCurrentUserId(settings);
+        _currentUserId = currentUserId;
+        _activeUser = _users.FirstOrDefault(x => x.Id == currentUserId) ?? _users.FirstOrDefault() ?? _activeUser;
+        _activeUserSteamId = _activeUser.SteamId64 ?? string.Empty;
+        _hasRawgKey = !string.IsNullOrWhiteSpace(settings.RawgApiKey);
+        _hasSteamKey = !string.IsNullOrWhiteSpace(settings.SteamWebApiKey);
+        _games = (await Repository.GetGameEntriesAsync(currentUserId)).ToList();
+        _summary = await Repository.GetGameSummaryAsync(currentUserId);
+        if (_draft.UserId == 0)
+        {
+            _draft.UserId = currentUserId;
+        }
+
+        if (!_hasSteamKey || string.IsNullOrWhiteSpace(_activeUserSteamId))
+        {
+            _steamLibraryGames = [];
+            _steamLibraryCount = 0;
+            _steamLibraryMessage = "Link Steam to the current user in Settings to populate the library.";
+            _ownedSteamAppIds = [];
+        }
+
+        await RefreshSteamLibraryAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_draft.GameTitle))
+        {
+            return;
+        }
+
+        await Repository.SaveEntryAsync(new PlannerEntry
+        {
+            Title = _draft.GameTitle.Trim(),
+            GameTitle = _draft.GameTitle.Trim(),
+            GameCoverUrl = string.IsNullOrWhiteSpace(_draft.GameCoverUrl) ? null : _draft.GameCoverUrl.Trim(),
+            GameStatus = _draft.GameStatus,
+            GameRating = _draft.RatingValue == 0 ? null : _draft.RatingValue,
+            Kind = _draft.Kind,
+            TargetDate = _draft.TargetDate,
+            GameSteamAppId = _draft.SteamAppId,
+            UserId = _draft.UserId == 0 ? GetCurrentUserId() : _draft.UserId,
+            Status = _draft.Kind == "game_plan" ? "planned" : "saved",
+            Notes = _draft.Notes.Trim()
+        });
+
+        ResetDraft();
+        await LoadAsync();
+    }
+
+    private async Task UpdateStatusAsync(PlannerEntry game, string value)
+    {
+        game.GameStatus = value;
+        await Repository.SaveEntryAsync(game);
+        await LoadAsync();
+    }
+
+    private async Task SearchAsync()
+    {
+        _searchMessage = string.Empty;
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            _searchMessageSeverity = Severity.Warning;
+            _searchMessage = "Type a game title first.";
+            return;
+        }
+
+        if (!_hasRawgKey)
+        {
+            _searchMessageSeverity = Severity.Warning;
+            _searchMessage = "Set the RAWG API key in Settings before searching.";
+            return;
+        }
+
+        _searching = true;
+        try
+        {
+            _searchResults = (await GameCatalog.SearchRawgGamesAsync(_searchQuery.Trim())).ToList();
+            _searchMessageSeverity = _searchResults.Count > 0 ? Severity.Success : Severity.Info;
+            _searchMessage = _searchResults.Count > 0
+                ? $"Found {_searchResults.Count} RAWG result(s)."
+                : "No RAWG results found.";
+        }
+        catch (Exception ex)
+        {
+            _searchResults = [];
+            _searchMessageSeverity = Severity.Error;
+            _searchMessage = $"RAWG search failed: {ex.Message}";
+        }
+        finally
+        {
+            _searching = false;
+        }
+    }
+
+    private async Task UseSearchResultAsync(GameSearchResult game)
+    {
+        _draft.GameTitle = game.Name;
+        _draft.GameCoverUrl = game.CoverUrl ?? string.Empty;
+        _draft.GameStatus = "want_to_play";
+        _draft.Kind = "game_status";
+        _draft.TargetDate = null;
+        _draft.Notes = string.Empty;
+        _draft.RatingValue = 0;
+        _draft.UserId = _currentUserId;
+        _draft.SteamAppId = game.SteamAppId;
+        _draft.SteamAppIdText = game.SteamAppId?.ToString();
+        _draft.TargetDateText = null;
+
+        await InvokeAsync(StateHasChanged);
+
+        GameSearchResult? detail = null;
+        try
+        {
+            detail = await GameCatalog.GetRawgGameAsync(game.RawgId);
+        }
+        catch
+        {
+            // Keep the draft usable even if RAWG detail lookup fails.
+        }
+
+        if (detail is not null)
+        {
+            _draft.GameCoverUrl = detail.CoverUrl ?? _draft.GameCoverUrl;
+            _draft.SteamAppId ??= detail.SteamAppId;
+            _draft.SteamAppIdText ??= detail.SteamAppId?.ToString();
+            await InvokeAsync(StateHasChanged);
+        }
+
+        var steamAppId = _draft.SteamAppId;
+        if (steamAppId.HasValue && !string.IsNullOrWhiteSpace(_activeUserSteamId) && _hasSteamKey)
+        {
+            SteamOwnershipCheck? ownership = null;
+            try
+            {
+                ownership = await GameCatalog.CheckSteamOwnershipAsync(_activeUserSteamId, steamAppId.Value);
+            }
+            catch
+            {
+                // Steam lookup failure should not block populating the form.
+            }
+
+            if (ownership is not null)
+            {
+                _searchMessageSeverity = ownership.Owned == true ? Severity.Success : ownership.Owned == false ? Severity.Warning : Severity.Info;
+                _searchMessage = ownership.Message;
+            }
+        }
+        else if (steamAppId.HasValue)
+        {
+            _searchMessageSeverity = Severity.Info;
+            _searchMessage = $"Steam app id {steamAppId} detected. Connect Steam on the user profile to check ownership.";
+        }
+    }
+
+    private async Task QuickAddToPlannerAsync(PlannerEntry game)
+    {
+        game.Kind = "game_plan";
+        game.TargetDate ??= DateOnly.FromDateTime(DateTime.Today);
+        await Repository.SaveEntryAsync(game);
+        await LoadAsync();
+    }
+
+    private async Task QuickAddSteamGameAsync(SteamOwnedGameSummary game)
+    {
+        await Repository.SaveEntryAsync(new PlannerEntry
+        {
+            Title = game.Name,
+            GameTitle = game.Name,
+            GameCoverUrl = string.IsNullOrWhiteSpace(GetSteamLibraryImage(game)) ? null : GetSteamLibraryImage(game),
+            GameStatus = "want_to_play",
+            Kind = "game_plan",
+            Status = "planned",
+            TargetDate = DateOnly.FromDateTime(DateTime.Today),
+            GameSteamAppId = game.AppId,
+            UserId = GetCurrentUserId(),
+            Notes = string.Empty
+        });
+
+        _searchMessageSeverity = Severity.Success;
+        _searchMessage = $"Added {game.Name} to the planner.";
+        await LoadAsync();
+    }
+
+    private async Task RefreshSteamLibraryAsync()
+    {
+        if (_refreshingSteamLibrary || !_hasSteamKey || string.IsNullOrWhiteSpace(_activeUserSteamId))
+        {
+            return;
+        }
+
+        _refreshingSteamLibrary = true;
+        try
+        {
+            var ownedResult = await GameCatalog.GetOwnedSteamGamesAsync(_activeUserSteamId);
+            _steamLibraryGames = ownedResult.Games.ToList();
+            _steamLibraryCount = ownedResult.GameCount;
+            _steamLibraryMessage = ownedResult.Message;
+            _ownedSteamAppIds = ownedResult.AppIds.ToHashSet();
+
+            foreach (var game in _games.Where(game => game.GameSteamAppId.HasValue))
+            {
+                try
+                {
+                    var isOwned = _ownedSteamAppIds.Contains(game.GameSteamAppId!.Value);
+                    var shouldSave = game.SteamOwned != isOwned || game.SteamCheckedAt is null;
+
+                    game.SteamOwned = isOwned;
+                    game.SteamCheckedAt = DateTimeOffset.UtcNow;
+
+                    if (shouldSave)
+                    {
+                        await Repository.SaveEntryAsync(game);
+                    }
+                }
+                catch
+                {
+                    // Keep the board usable even if Steam rate-limits or a lookup fails.
+                }
+            }
+
+            _games = (await Repository.GetGameEntriesAsync(_currentUserId)).ToList();
+            _summary = await Repository.GetGameSummaryAsync(_currentUserId);
+            if (!string.IsNullOrWhiteSpace(ownedResult.Message))
+            {
+                _searchMessageSeverity = ownedResult.AppIds.Count > 0 ? Severity.Success : Severity.Info;
+                _searchMessage = ownedResult.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            _steamLibraryGames = [];
+            _steamLibraryCount = 0;
+            _steamLibraryMessage = $"Steam library refresh failed: {ex.Message}";
+            _searchMessageSeverity = Severity.Error;
+            _searchMessage = _steamLibraryMessage;
+        }
+        finally
+        {
+            _refreshingSteamLibrary = false;
+        }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        await Repository.DeleteEntryAsync(id);
+        await LoadAsync();
+    }
+
+    private string GetUserName(int userId)
+    {
+        return _users.FirstOrDefault(x => x.Id == userId)?.Name ?? "Unknown";
+    }
+
+    private static string GetGameStatusLabel(string? status) => status switch
+    {
+        "playing" => "Playing",
+        "played" => "Played",
+        "finished" => "Finished",
+        _ => "Want to play"
+    };
+
+    private string GetGameStatusStyle(string? status) => status switch
+    {
+        "playing" => $"background:{_settings.PlayingColor};color:#fff;",
+        "played" => $"background:{_settings.PlayedColor};color:#fff;",
+        "finished" => $"background:{_settings.FinishedColor};color:#fff;",
+        _ => $"background:{_settings.WantToPlayColor};color:#fff;"
+    };
+
+    private string GetKindChipStyle(string? kind) => kind switch
+    {
+        "game_plan" => $"background:{_settings.DateIdeaColor};color:#fff;",
+        "game_status" => $"background:{_settings.FinishedColor};color:#fff;",
+        _ => $"background:{_settings.DateIdeaColor};color:#fff;"
+    };
+
+    private static string FormatSteamTime(int minutes)
+    {
+        if (minutes <= 0)
+        {
+            return "0m";
+        }
+
+        var hours = minutes / 60;
+        var remainingMinutes = minutes % 60;
+        if (hours <= 0)
+        {
+            return $"{remainingMinutes}m";
+        }
+
+        return remainingMinutes > 0 ? $"{hours}h {remainingMinutes}m" : $"{hours}h";
+    }
+
+    private static string GetSteamLibraryImage(SteamOwnedGameSummary game)
+    {
+        return !string.IsNullOrWhiteSpace(game.HeaderImageUrl)
+            ? game.HeaderImageUrl
+            : game.IconUrl;
+    }
+
+    private IEnumerable<SteamOwnedGameSummary> FilteredSteamLibrary
+    {
+        get
+        {
+            var query = _steamLibraryFilter.Trim();
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return _steamLibraryGames;
+            }
+
+            return _steamLibraryGames.Where(game =>
+                game.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                game.AppId.ToString().Contains(query, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private void ResetDraft()
+    {
+        _draft.GameTitle = string.Empty;
+        _draft.GameCoverUrl = string.Empty;
+        _draft.GameStatus = "want_to_play";
+        _draft.Kind = "game_status";
+        _draft.TargetDate = null;
+        _draft.Notes = string.Empty;
+        _draft.RatingValue = 0;
+        _draft.TargetDateText = null;
+        _draft.SteamAppId = null;
+        _draft.SteamAppIdText = null;
+        _draft.UserId = _currentUserId;
+    }
+
+    private int GetCurrentUserId(PlannerSettings? settings = null)
+    {
+        if (State.SelectedUserId.HasValue)
+        {
+            return State.SelectedUserId.Value;
+        }
+
+        return settings?.ActiveUserId ?? _users.FirstOrDefault()?.Id ?? 0;
+    }
+
+    private void OnPlannerStateChanged()
+    {
+        _ = LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        State.Changed -= OnPlannerStateChanged;
+    }
+
+    private sealed class GameDraft
+    {
+        public string GameTitle { get; set; } = string.Empty;
+        public string GameCoverUrl { get; set; } = string.Empty;
+        public string GameStatus { get; set; } = "want_to_play";
+        public string Kind { get; set; } = "game_status";
+        public DateOnly? TargetDate { get; set; }
+        public string Notes { get; set; } = string.Empty;
+        public int RatingValue { get; set; }
+        public int UserId { get; set; }
+        public int? SteamAppId { get; set; }
+        public string? SteamAppIdText
+        {
+            get => SteamAppId?.ToString();
+            set
+            {
+                if (int.TryParse(value, out var parsed))
+                {
+                    SteamAppId = parsed;
+                }
+                else
+                {
+                    SteamAppId = null;
+                }
+            }
+        }
+
+        public string? TargetDateText
+        {
+            get => TargetDate?.ToString("yyyy-MM-dd");
+            set
+            {
+                if (DateOnly.TryParse(value, out var parsed))
+                {
+                    TargetDate = parsed;
+                }
+                else
+                {
+                    TargetDate = null;
+                }
+            }
+        }
+    }
+}
