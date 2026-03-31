@@ -1,5 +1,16 @@
 <resources>
     <string name="app_name">Relationship Planner</string>
-    <string name="app_text">Native Android client scaffold</string>
-    <string name="app_subtitle">Ready to connect to the shared backend API.</string>
+    <string name="app_text">Native Android client</string>
+    <string name="app_subtitle">Connect this phone to the shared backend API and view live planner data.</string>
+    <string name="connection_header">Backend connection</string>
+    <string name="connection_subtitle">Enter the API base URL for the machine hosting the backend. For example, http://192.168.1.50:5283/.</string>
+    <string name="api_base_url_hint">API base URL</string>
+    <string name="save_url">Save URL</string>
+    <string name="refresh_data">Refresh</string>
+    <string name="status_waiting">Waiting for a backend connection.</string>
+    <string name="current_user_header">Current user</string>
+    <string name="current_user_none">No user selected yet.</string>
+    <string name="planner_summary_header">Planner snapshot</string>
+    <string name="finance_summary_header">Finance snapshot</string>
+    <string name="summary_placeholder">No data loaded yet.</string>
 </resources>
