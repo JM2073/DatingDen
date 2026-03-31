@@ -1,6 +1,4 @@
 <Solution>
-  <Folder Name="/mudblazor-rebuild/">
-    <Project Path="mudblazor-rebuild/RelationshipPlanner.Rebuild.csproj" />
-  </Folder>
+  <Project Path="mudblazor-rebuild/RelationshipPlanner.Rebuild.csproj" />
   <Project Path="RelationshipPlanner.Mobile/RelationshipPlanner.Mobile.csproj" />
 </Solution>

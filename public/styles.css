@@ -1,29 +1,31 @@
 :root {
   color-scheme: light;
-  --bg: #f5f6fa;
-  --bg-accent: #fbfcfe;
-  --card: rgba(255, 255, 255, 0.92);
-  --text: #1b1f2a;
-  --muted: #667085;
-  --line: rgba(27, 31, 42, 0.08);
-  --accent: #1976d2;
-  --accent-dark: #0d47a1;
-  --shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
-  --radius: 24px;
-  font-family: Roboto, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --bg: #eef1f6;
+  --bg-accent: #ffffff;
+  --card: rgba(255, 255, 255, 0.96);
+  --text: #12131a;
+  --muted: #5f6675;
+  --line: rgba(18, 19, 26, 0.09);
+  --accent: #c3252d;
+  --accent-dark: #8d1117;
+  --user-accent: #c3252d;
+  --shadow: 0 18px 45px rgba(12, 14, 20, 0.12);
+  --radius: 28px;
+  font-family: "Aptos", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #0f172a;
-  --bg-accent: #111827;
-  --card: rgba(17, 24, 39, 0.9);
-  --text: #e5e7eb;
-  --muted: #9ca3af;
-  --line: rgba(148, 163, 184, 0.16);
-  --accent: #64b5f6;
-  --accent-dark: #90caf9;
-  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  --bg: #0d1018;
+  --bg-accent: #141a27;
+  --card: rgba(18, 21, 31, 0.96);
+  --text: #f6f7fb;
+  --muted: #a8afbf;
+  --line: rgba(233, 236, 245, 0.12);
+  --accent: #ef3c43;
+  --accent-dark: #ffb7b9;
+  --user-accent: #ef3c43;
+  --shadow: 0 20px 50px rgba(0, 0, 0, 0.44);
 }
 
 * {
@@ -31,13 +33,25 @@ body[data-theme='dark'] {
 }
 
 body {
+  position: relative;
   margin: 0;
   min-height: 100vh;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(25, 118, 210, 0.12), transparent 24%),
-    radial-gradient(circle at top right, rgba(109, 76, 65, 0.08), transparent 20%),
+    radial-gradient(circle at top left, rgba(195, 37, 45, 0.12), transparent 22%),
+    radial-gradient(circle at top right, rgba(18, 19, 26, 0.08), transparent 24%),
     linear-gradient(180deg, var(--bg-accent), var(--bg));
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 22%),
+    linear-gradient(330deg, rgba(195, 37, 45, 0.05), transparent 28%);
+  mix-blend-mode: soft-light;
 }
 
 button,
@@ -58,25 +72,40 @@ textarea {
 }
 
 .card {
+  position: relative;
+  overflow: hidden;
   background: var(--card);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--line) 78%, white);
   box-shadow: var(--shadow);
 }
 
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent), rgba(255, 255, 255, 0.35), transparent);
+  pointer-events: none;
+}
+
 .hero {
-  border-radius: 32px;
-  padding: 28px;
+  border-radius: 34px;
+  padding: 30px;
   display: grid;
   gap: 24px;
   grid-template-columns: 1.6fr 1fr;
   align-items: end;
   margin-bottom: 20px;
-  background: linear-gradient(135deg, rgba(25, 118, 210, 0.07), rgba(255, 255, 255, 0.96));
+  background:
+    radial-gradient(circle at top right, rgba(195, 37, 45, 0.12), transparent 26%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(238, 241, 246, 0.95));
 }
 
 body[data-theme='dark'] .hero {
-  background: linear-gradient(135deg, rgba(100, 181, 246, 0.12), rgba(17, 24, 39, 0.96));
+  background:
+    radial-gradient(circle at top right, rgba(239, 60, 67, 0.18), transparent 22%),
+    linear-gradient(135deg, rgba(18, 21, 31, 0.98), rgba(13, 16, 24, 0.96));
 }
 
 .hero-head {
@@ -92,18 +121,48 @@ body[data-theme='dark'] .hero {
   justify-items: end;
 }
 
+.user-switcher {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.user-switcher > span {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.user-switcher-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.user-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--user-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--user-accent) 18%, transparent);
+}
+
 .app-nav {
   display: flex;
   gap: 10px;
   align-items: center;
   justify-content: space-between;
   padding: 12px;
-  border-radius: 22px;
+  border-radius: 999px;
   margin: 0 0 20px;
 }
 
 .app-nav button {
   flex: 1;
+  border-radius: 999px;
 }
 
 .app-nav button[aria-current='page'] {
@@ -121,6 +180,7 @@ body[data-theme='dark'] .hero {
 }
 
 h1 {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
   margin: 0;
   font-size: clamp(2rem, 6vw, 4.4rem);
   line-height: 0.95;
@@ -137,14 +197,14 @@ h1 {
 
 .hero-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
 .stat {
   padding: 18px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.9);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 246, 250, 0.94));
   border: 1px solid var(--line);
 }
 
@@ -160,14 +220,14 @@ body[data-theme='dark'] .entry,
 body[data-theme='dark'] .calendar-day,
 body[data-theme='dark'] .calendar-agenda .agenda-item,
 body[data-theme='dark'] .game-result {
-  background: rgba(17, 24, 39, 0.88);
+  background: rgba(18, 21, 31, 0.96);
 }
 
 .stat span {
   display: block;
-  font-size: 2rem;
+  font-size: 1.95rem;
   font-weight: 800;
-  color: var(--accent-dark);
+  color: var(--user-accent);
 }
 
 .stat label {
@@ -179,26 +239,40 @@ body[data-theme='dark'] .game-result {
 
 .grid {
   display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 20px;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
+#planner-view {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: 1fr;
 }
 
 .calendar-panel {
-  border-radius: 28px;
-  padding: 22px;
-  margin-bottom: 20px;
+  border-radius: 30px;
+  padding: 26px;
+  margin-bottom: 0;
 }
 
 .game-panel {
-  border-radius: 28px;
-  padding: 22px;
-  margin-bottom: 20px;
+  border-radius: 30px;
+  padding: 26px;
+  margin-bottom: 0;
 }
 
 .settings-panel {
-  border-radius: 28px;
-  padding: 22px;
+  border-radius: 30px;
+  padding: 24px;
   margin: 20px 0;
+  display: grid;
+  gap: 18px;
+}
+
+.users-panel {
+  border-radius: 30px;
+  padding: 24px;
+  margin: 0;
   display: grid;
   gap: 18px;
 }
@@ -210,7 +284,7 @@ body[data-theme='dark'] .game-result {
   justify-content: space-between;
   gap: 16px;
   align-items: start;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.98);
 }
 
 .settings-summary-stat {
@@ -222,7 +296,7 @@ body[data-theme='dark'] .game-result {
   display: block;
   font-size: 2rem;
   font-weight: 800;
-  color: var(--accent-dark);
+  color: var(--user-accent);
 }
 
 .settings-summary-stat label {
@@ -233,6 +307,48 @@ body[data-theme='dark'] .game-result {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 16px;
+}
+
+.user-form {
+  align-items: start;
+}
+
+.user-roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.user-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--text);
+  text-align: left;
+}
+
+.user-card.is-active {
+  border-color: var(--user-accent);
+  box-shadow: inset 0 0 0 1px var(--user-accent);
+}
+
+.user-card-swatch {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  display: block;
+}
+
+.user-card-name {
+  font-weight: 800;
+}
+
+.user-card-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .settings-form .field {
@@ -288,7 +404,7 @@ body[data-theme='dark'] .game-result {
   min-height: 86px;
   border-radius: 18px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.99);
   padding: 10px;
   text-align: left;
   display: flex;
@@ -302,17 +418,17 @@ body[data-theme='dark'] .game-result {
 }
 
 .calendar-day.is-today {
-  border-color: rgba(25, 118, 210, 0.45);
-  box-shadow: inset 0 0 0 1px rgba(25, 118, 210, 0.18);
+  border-color: rgba(195, 37, 45, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(195, 37, 45, 0.16);
 }
 
 .calendar-day.is-selected {
-  background: linear-gradient(180deg, rgba(25, 118, 210, 0.12), rgba(255, 255, 255, 0.96));
-  border-color: rgba(25, 118, 210, 0.5);
+  background: linear-gradient(180deg, rgba(195, 37, 45, 0.14), rgba(255, 255, 255, 0.99));
+  border-color: rgba(195, 37, 45, 0.5);
 }
 
 body[data-theme='dark'] .calendar-day.is-selected {
-  background: linear-gradient(180deg, rgba(100, 181, 246, 0.18), rgba(17, 24, 39, 0.96));
+  background: linear-gradient(180deg, rgba(239, 60, 67, 0.2), rgba(18, 21, 31, 0.98));
 }
 
 .calendar-day:disabled {
@@ -341,77 +457,256 @@ body[data-theme='dark'] .calendar-day.is-selected {
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
-  background: rgba(35, 31, 32, 0.08);
+  background: rgba(18, 19, 26, 0.08);
   color: var(--text);
 }
 
 .calendar-badge.date {
-  background: rgba(184, 92, 56, 0.14);
+  background: rgba(195, 37, 45, 0.14);
   color: var(--accent-dark);
 }
 
 .calendar-badge.reminder {
-  background: rgba(35, 31, 32, 0.08);
+  background: rgba(18, 19, 26, 0.08);
 }
 
 .calendar-badge.countdown {
-  background: rgba(76, 122, 83, 0.14);
-  color: #31513a;
+  background: rgba(18, 19, 26, 0.09);
+  color: #394055;
 }
 
 .calendar-badge.memory {
-  background: rgba(71, 89, 137, 0.14);
-  color: #32426b;
+  background: rgba(18, 19, 26, 0.08);
+  color: #4b5568;
 }
 
 .calendar-badge.got_together {
-  background: rgba(214, 118, 84, 0.16);
-  color: #a44e2c;
+  background: rgba(195, 37, 45, 0.14);
+  color: #8d1117;
 }
 
 body[data-theme='dark'] .calendar-badge {
-  background: rgba(148, 163, 184, 0.16);
+  background: rgba(148, 163, 184, 0.14);
   color: var(--text);
 }
 
 body[data-theme='dark'] .calendar-badge.date {
-  background: rgba(100, 181, 246, 0.2);
-  color: #dbeafe;
+  background: rgba(239, 60, 67, 0.2);
+  color: #ffe2e4;
 }
 
 body[data-theme='dark'] .calendar-badge.countdown {
-  background: rgba(129, 199, 132, 0.18);
-  color: #dcfce7;
+  background: rgba(148, 163, 184, 0.16);
+  color: #eef2ff;
 }
 
 body[data-theme='dark'] .calendar-badge.memory {
-  background: rgba(147, 197, 253, 0.18);
-  color: #dbeafe;
+  background: rgba(233, 236, 245, 0.12);
+  color: #f8fafc;
 }
 
 body[data-theme='dark'] .calendar-badge.got_together {
-  background: rgba(251, 146, 60, 0.18);
-  color: #fed7aa;
+  background: rgba(239, 60, 67, 0.18);
+  color: #ffe2e4;
 }
 
 .calendar-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 16px;
   align-items: center;
   margin-top: 16px;
-}
-
-.calendar-date {
-  margin: 0;
-  font-weight: 800;
-  font-size: 1rem;
 }
 
 .calendar-agenda {
   display: grid;
   gap: 10px;
   margin-top: 16px;
+}
+
+.selected-day-panel {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 14px;
+}
+
+.selected-day-head {
+  align-items: start;
+}
+
+.selected-day-head h3 {
+  margin: 2px 0 0;
+  font-size: 1.18rem;
+}
+
+.selected-day-panel .calendar-agenda {
+  margin-top: 0;
+}
+
+.day-memo-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.quick-actions-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.quick-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.memo-form {
+  display: grid;
+  gap: 14px;
+}
+
+.memo-sketch {
+  display: grid;
+  gap: 10px;
+}
+
+.memo-sketch-head {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.memo-canvas {
+  width: 100%;
+  height: 220px;
+  display: block;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--user-accent) 28%, var(--line));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--user-accent) 8%, transparent), transparent),
+    rgba(255, 255, 255, 0.96);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.memo-body {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.memo-sketch-preview,
+.entry-memo-sketch {
+  width: 100%;
+  display: block;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--user-accent) 20%, var(--line));
+  background: rgba(18, 21, 31, 0.04);
+}
+
+.memo-sketch-preview {
+  max-height: 220px;
+  object-fit: contain;
+}
+
+.entry-memo-sketch {
+  max-height: 180px;
+  object-fit: contain;
+}
+
+body[data-theme='dark'] .day-memo-panel {
+  background: rgba(18, 21, 31, 0.96);
+  border-color: var(--line);
+}
+
+body[data-theme='dark'] .memo-canvas {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--user-accent) 10%, transparent), transparent),
+    rgba(18, 21, 31, 0.96);
+}
+
+body[data-theme='dark'] .memo-sketch-preview,
+body[data-theme='dark'] .entry-memo-sketch {
+  background: rgba(18, 21, 31, 0.72);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+.rating-dialog {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: min(560px, calc(100vw - 24px));
+  width: 100%;
+}
+
+.editor-dialog {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: min(860px, calc(100vw - 24px));
+  width: 100%;
+}
+
+.rating-dialog::backdrop {
+  background: rgba(12, 14, 20, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.editor-dialog::backdrop {
+  background: rgba(12, 14, 20, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.rating-dialog-card {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.dialog-card {
+  width: min(860px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+}
+
+.rating-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rating-choice {
+  min-height: 54px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.rating-choice.is-active {
+  background: color-mix(in srgb, var(--user-accent) 18%, white);
+  border-color: var(--user-accent);
+  box-shadow: inset 0 0 0 1px var(--user-accent);
+}
+
+body[data-theme='dark'] .rating-choice {
+  background: rgba(18, 21, 31, 0.92);
+}
+
+body[data-theme='dark'] .rating-choice.is-active {
+  background: color-mix(in srgb, var(--user-accent) 22%, rgba(18, 21, 31, 0.96));
 }
 
 .game-search-bar {
@@ -428,7 +723,7 @@ body[data-theme='dark'] .calendar-badge.got_together {
 
 .game-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
+  grid-template-columns: 1fr;
   gap: 16px;
   margin-top: 16px;
 }
@@ -444,6 +739,89 @@ body[data-theme='dark'] .calendar-badge.got_together {
   margin-bottom: 16px;
 }
 
+.game-status-manager {
+  border-radius: 24px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.game-status-manager-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.game-status-item {
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.96);
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.game-status-item-head {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.game-status-item-banner {
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--user-accent) 14%, transparent);
+  display: grid;
+  place-items: center;
+}
+
+.game-status-item-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.game-status-item-placeholder {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--user-accent);
+}
+
+.game-status-item-copy h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.game-status-item-copy .game-meta {
+  margin-top: 4px;
+}
+
+.game-status-item-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.game-status-item-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.game-status-item-actions label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.game-status-item-actions label span {
+  font-weight: 700;
+}
+
 .game-status-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -453,7 +831,7 @@ body[data-theme='dark'] .calendar-badge.got_together {
 .game-status-card {
   border-radius: 18px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.96);
   padding: 14px;
   display: grid;
   gap: 10px;
@@ -464,14 +842,14 @@ body[data-theme='dark'] .calendar-badge.got_together {
   aspect-ratio: 16 / 9;
   border-radius: 14px;
   object-fit: cover;
-  background: rgba(27, 31, 42, 0.06);
+  background: rgba(18, 21, 31, 0.06);
 }
 
 .game-status-card span {
   display: block;
   font-size: 1.8rem;
   font-weight: 800;
-  color: var(--accent-dark);
+  color: var(--user-accent);
 }
 
 .game-status-card label {
@@ -480,6 +858,7 @@ body[data-theme='dark'] .calendar-badge.got_together {
 
 .game-results {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
 }
 
@@ -490,8 +869,14 @@ body[data-theme='dark'] .calendar-badge.got_together {
   align-items: center;
   border: 1px solid var(--line);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.96);
   padding: 12px;
+}
+
+.game-result-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: stretch;
 }
 
 .game-result-cover,
@@ -500,7 +885,7 @@ body[data-theme='dark'] .calendar-badge.got_together {
   width: 100%;
   border-radius: 16px;
   object-fit: cover;
-  background: rgba(27, 31, 42, 0.06);
+  background: rgba(18, 19, 26, 0.06);
 }
 
 .game-result-cover {
@@ -524,7 +909,7 @@ body[data-theme='dark'] .calendar-badge.got_together {
   border-radius: 24px;
   padding: 16px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.96);
   display: grid;
   gap: 12px;
 }
@@ -533,7 +918,7 @@ body[data-theme='dark'] .calendar-badge.got_together {
   aspect-ratio: 16 / 9;
   border-radius: 18px;
   overflow: hidden;
-  background: rgba(27, 31, 42, 0.06);
+  background: rgba(18, 19, 26, 0.06);
 }
 
 .selected-cover-wrap img {
@@ -550,7 +935,7 @@ body[data-theme='dark'] .calendar-badge.got_together {
   padding: 16px;
   overflow: hidden;
   position: relative;
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.55));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--entry-accent, #1976d2) 14%, transparent), rgba(18, 19, 26, 0.55));
 }
 
 .entry-banner-image {
@@ -572,9 +957,22 @@ body[data-theme='dark'] .calendar-badge.got_together {
 
 .calendar-agenda .agenda-item {
   border-radius: 18px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.72);
-  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--entry-accent, var(--line)) 38%, var(--line));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--entry-accent, #1976d2) 10%, transparent), transparent),
+    rgba(255, 255, 255, 0.95);
+  padding: 14px 16px;
+  display: grid;
+  gap: 6px;
+  box-shadow: inset 4px 0 0 var(--entry-accent, var(--accent));
+}
+
+.calendar-agenda .agenda-item .tag {
+  width: fit-content;
+}
+
+.calendar-agenda .agenda-item .agenda-meta {
+  line-height: 1.5;
 }
 
 .agenda-item h3 {
@@ -597,6 +995,14 @@ body[data-theme='dark'] .calendar-badge.got_together {
 h2 {
   margin: 0 0 18px;
   font-size: 1.3rem;
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  letter-spacing: 0.01em;
+}
+
+h3,
+h4 {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  letter-spacing: 0.01em;
 }
 
 .field {
@@ -617,15 +1023,20 @@ textarea {
   width: 100%;
   border-radius: 16px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.96);
   color: var(--text);
   padding: 13px 14px;
+}
+
+input[type='color'] {
+  min-height: 48px;
+  padding: 6px;
 }
 
 body[data-theme='dark'] input,
 body[data-theme='dark'] select,
 body[data-theme='dark'] textarea {
-  background: rgba(15, 23, 42, 0.96);
+  background: rgba(18, 21, 31, 0.96);
   border-color: rgba(148, 163, 184, 0.28);
   color: var(--text);
 }
@@ -654,7 +1065,17 @@ body[data-theme='dark'] .entry-meta {
 
 body[data-theme='dark'] .eyebrow,
 body[data-theme='dark'] .tag {
-  color: #bfdbfe;
+  color: #fca5a5;
+}
+
+body[data-theme='dark'] .user-card,
+body[data-theme='dark'] .settings-summary,
+body[data-theme='dark'] .game-status-card,
+body[data-theme='dark'] .game-status-item,
+body[data-theme='dark'] .agenda-item,
+body[data-theme='dark'] .entry {
+  background: rgba(18, 21, 31, 0.96);
+  border-color: var(--line);
 }
 
 body[data-theme='dark'] .entry h3,
@@ -674,15 +1095,25 @@ body[data-theme='dark'] .game-status-card label {
 }
 
 body[data-theme='dark'] .game-status-banner {
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(18, 21, 31, 0.7);
+}
+
+body[data-theme='dark'] .game-status-item-banner {
+  background: rgba(148, 163, 184, 0.12);
 }
 
 body[data-theme='dark'] .entry-banner {
-  background-color: rgba(15, 23, 42, 0.72);
+  background-color: rgba(18, 21, 31, 0.72);
 }
 
 body[data-theme='dark'] .entry-banner-image {
   opacity: 0.92;
+}
+
+body[data-theme='dark'] .user-card,
+body[data-theme='dark'] .user-chip {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.22);
 }
 
 textarea {
@@ -694,7 +1125,7 @@ input:focus,
 select:focus,
 textarea:focus,
 button:focus {
-  outline: 2px solid rgba(184, 92, 56, 0.35);
+  outline: 2px solid rgba(195, 37, 45, 0.4);
   outline-offset: 2px;
 }
 
@@ -713,16 +1144,17 @@ button:focus {
 
 button {
   border: 0;
-  border-radius: 16px;
-  padding: 12px 16px;
-  background: var(--accent);
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent));
   color: white;
   font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 button.secondary {
-  background: rgba(35, 31, 32, 0.08);
+  background: rgba(18, 19, 26, 0.08);
   color: var(--text);
 }
 
@@ -740,12 +1172,21 @@ body[data-theme='dark'] .game-selected,
 body[data-theme='dark'] .calendar-agenda .agenda-item,
 body[data-theme='dark'] .game-result,
 body[data-theme='dark'] .entry {
-  background: rgba(17, 24, 39, 0.88);
+  background: rgba(18, 21, 31, 0.96);
   border-color: var(--line);
 }
 
+body[data-theme='dark'] .selected-day-panel {
+  border-top-color: rgba(148, 163, 184, 0.18);
+}
+
 button:hover {
-  filter: brightness(1.03);
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+button:active {
+  transform: translateY(0);
 }
 
 .status {
@@ -762,7 +1203,10 @@ button:hover {
 .entry {
   border-radius: 22px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.8);
+  border-left: 6px solid var(--entry-accent, var(--line));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--entry-accent, #1976d2) 10%, transparent), transparent 48%),
+    rgba(255, 255, 255, 0.95);
   padding: 18px;
 }
 
@@ -770,6 +1214,19 @@ button:hover {
   display: flex;
   justify-content: space-between;
   gap: 16px;
+}
+
+.entry-top > div:first-child {
+  display: grid;
+  gap: 8px;
+}
+
+.entry-color-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  background: var(--dot-color, var(--accent));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--dot-color, var(--accent)) 18%, transparent);
 }
 
 .tag {
@@ -786,15 +1243,40 @@ button:hover {
   font-size: 1.12rem;
 }
 
+.entry .tag {
+  color: var(--entry-accent, var(--accent-dark));
+}
+
+.entry-meta .user-chip {
+  border-width: 1px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chip-color) 20%, transparent);
+}
+
 .entry-meta,
 .details {
   color: var(--muted);
 }
 
 .entry-meta {
-  white-space: nowrap;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
   text-align: right;
   font-size: 0.92rem;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--chip-color) 16%, transparent);
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--chip-color) 28%, transparent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  width: fit-content;
 }
 
 .details {
@@ -813,8 +1295,20 @@ button:hover {
     grid-template-columns: 1fr;
   }
 
+  #planner-view {
+    grid-template-columns: 1fr;
+  }
+
+  .game-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .game-results-wrap {
+    grid-template-columns: 1fr;
+  }
+
   .hero-stats {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hero-head,
@@ -850,6 +1344,10 @@ button:hover {
     padding: 18px;
   }
 
+  #planner-view {
+    gap: 16px;
+  }
+
   .hero-stats {
     grid-template-columns: 1fr;
   }
@@ -861,6 +1359,11 @@ button:hover {
   .hero-actions {
     width: 100%;
     justify-items: stretch;
+  }
+
+  .user-switcher {
+    width: 100%;
+    min-width: 0;
   }
 
   .app-nav,
@@ -879,9 +1382,17 @@ button:hover {
   }
 
   .game-search-bar,
-  .game-layout,
   .game-result {
     grid-template-columns: 1fr;
+  }
+
+  .game-status-item-head,
+  .game-status-item-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .game-status-item-buttons {
+    justify-content: flex-start;
   }
 
   .game-status-grid {
@@ -909,21 +1420,65 @@ button:hover {
 
 @media (min-width: 1360px) {
   .shell {
-    width: min(1360px, calc(100vw - 32px));
+    width: min(1480px, calc(100vw - 32px));
+  }
+}
+
+@media (min-width: 1180px) {
+  .shell {
+    width: min(1480px, calc(100vw - 32px));
   }
 
-  .hero,
-  .calendar-panel,
-  .game-panel,
+  .shell {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-areas:
+      "hero planner"
+      "nav planner"
+      "settings planner";
+    gap: 22px 24px;
+    align-items: start;
+  }
+
+  .hero {
+    grid-area: hero;
+    position: sticky;
+    top: 18px;
+    align-self: start;
+  }
+
+  .app-nav {
+    grid-area: nav;
+    position: sticky;
+    top: 20px;
+    align-self: start;
+  }
+
+  #settings-view {
+    grid-area: settings;
+    margin: 0;
+  }
+
+  #planner-view {
+    grid-area: planner;
+  }
+
   .grid {
-    margin-left: auto;
-    margin-right: auto;
+    grid-template-columns: minmax(340px, 400px) minmax(0, 1fr);
+  }
+
+  .game-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .game-results {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   }
 }
 
 @media (min-width: 1720px) {
   .shell {
-    width: min(1400px, calc(100vw - 40px));
+    width: min(1540px, calc(100vw - 40px));
   }
 
   .hero {
@@ -936,15 +1491,15 @@ button:hover {
     padding: 26px;
   }
 
-  .grid {
-    grid-template-columns: minmax(400px, 460px) minmax(0, 1fr);
-  }
-
   .calendar-grid {
     min-height: 420px;
   }
 
-  .game-layout {
-    grid-template-columns: minmax(0, 1.5fr) minmax(360px, 0.85fr);
+  .grid {
+    grid-template-columns: minmax(360px, 420px) minmax(0, 1fr);
+  }
+
+  .game-results {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   }
 }
