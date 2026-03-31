@@ -1,0 +1,582 @@
+html,
+body {
+    margin: 0;
+    min-height: 100%;
+    font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #eef1f6;
+    color: #12131a;
+}
+
+a {
+    color: var(--planner-accent, #c3252d);
+    text-decoration: none;
+}
+
+.planner-shell {
+    --planner-accent: #c3252d;
+    --planner-secondary: #8d1117;
+    --planner-bg-start: #f7f8fb;
+    --planner-bg-end: #eef1f6;
+    --planner-surface: rgba(255, 255, 255, 0.96);
+    --planner-surface-strong: #ffffff;
+    --planner-surface-soft: rgba(255, 255, 255, 0.78);
+    --planner-border: rgba(18, 19, 26, 0.08);
+    --planner-text: #12131a;
+    --planner-muted: #5f6675;
+    --planner-heading-font: "Georgia", "Times New Roman", serif;
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--planner-accent) 16%, transparent), transparent 26%),
+        radial-gradient(circle at top right, color-mix(in srgb, var(--planner-secondary) 10%, transparent), transparent 22%),
+        linear-gradient(180deg, var(--planner-bg-start), var(--planner-bg-end));
+    color: var(--planner-text);
+}
+
+.planner-shell.theme-persona {
+    --planner-accent: #7c3aed;
+    --planner-secondary: #ec4899;
+    --planner-bg-start: #f7f4ff;
+    --planner-bg-end: #ede9fe;
+    --planner-heading-font: "Trebuchet MS", "Segoe UI", sans-serif;
+}
+
+.planner-shell.theme-rwby {
+    --planner-accent: #c3252d;
+    --planner-secondary: #f3c87c;
+    --planner-bg-start: #120f15;
+    --planner-bg-end: #1b1522;
+    --planner-surface: rgba(18, 21, 31, 0.96);
+    --planner-surface-strong: #171b28;
+    --planner-surface-soft: rgba(23, 27, 40, 0.78);
+    --planner-border: rgba(255, 255, 255, 0.12);
+    --planner-text: #f6f7fb;
+    --planner-muted: #c5ccd9;
+    --planner-heading-font: "Georgia", "Times New Roman", serif;
+}
+
+.planner-shell.theme-pokemon {
+    --planner-accent: #3b82f6;
+    --planner-secondary: #f59e0b;
+    --planner-bg-start: #eef7ff;
+    --planner-bg-end: #fff7d6;
+    --planner-heading-font: "Verdana", "Segoe UI", sans-serif;
+}
+
+.planner-shell.theme-dnd {
+    --planner-accent: #7c2d12;
+    --planner-secondary: #4c1d95;
+    --planner-bg-start: #fff4e8;
+    --planner-bg-end: #f4edf9;
+    --planner-heading-font: "Garamond", "Georgia", serif;
+}
+
+.planner-shell.theme-cozy {
+    --planner-accent: #d97706;
+    --planner-secondary: #ec4899;
+    --planner-bg-start: #fff8f1;
+    --planner-bg-end: #fff1f8;
+    --planner-heading-font: "Palatino Linotype", "Georgia", serif;
+}
+
+.planner-shell.theme-retro {
+    --planner-accent: #0ea5e9;
+    --planner-secondary: #fb7185;
+    --planner-bg-start: #effcff;
+    --planner-bg-end: #fff1f4;
+    --planner-heading-font: "Consolas", "Courier New", monospace;
+}
+
+.app-bar {
+    border-bottom: 1px solid var(--planner-border);
+    background: var(--planner-surface);
+    color: var(--planner-text);
+}
+
+.app-title {
+    letter-spacing: 0.01em;
+}
+
+.planner-shell h1,
+.planner-shell h2,
+.planner-shell h3,
+.planner-shell h4,
+.planner-shell h5,
+.planner-shell h6,
+.planner-shell .MudText-root {
+    color: inherit;
+}
+
+.planner-shell h1,
+.planner-shell h2,
+.planner-shell h3,
+.planner-shell h4,
+.planner-shell h5,
+.planner-shell h6,
+.planner-shell .hero-title,
+.planner-shell .drawer-title,
+.planner-shell .app-title {
+    font-family: var(--planner-heading-font);
+}
+
+.app-shell {
+    padding: 24px;
+}
+
+.planner-shell.dark-mode {
+    background:
+        radial-gradient(circle at top left, rgba(239, 60, 67, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(233, 236, 245, 0.06), transparent 20%),
+        linear-gradient(180deg, #0d1018, #111622);
+    color: #f6f7fb;
+}
+
+.planner-shell.dark-mode a {
+    color: #ffb7b9;
+}
+
+.planner-shell.dark-mode .app-bar,
+.planner-shell.dark-mode .side-panel,
+.planner-shell.dark-mode .roadmap-panel,
+.planner-shell.dark-mode .metric-card,
+.planner-shell.dark-mode .roadmap-card,
+.planner-shell.dark-mode .planner-panel,
+.planner-shell.dark-mode .hero-panel {
+    background: rgba(18, 21, 31, 0.96);
+    color: #f6f7fb;
+    border-color: rgba(233, 236, 245, 0.12);
+}
+
+.planner-shell.dark-mode .hero-panel {
+    background:
+        linear-gradient(135deg, rgba(239, 60, 67, 0.12), rgba(18, 21, 31, 0.98));
+}
+
+.planner-shell.dark-mode .hero-copy,
+.planner-shell.dark-mode .muted,
+.planner-shell.dark-mode .weekday {
+    color: #a8afbf;
+}
+
+.planner-shell.dark-mode .metric-card,
+.planner-shell.dark-mode .roadmap-card,
+.planner-shell.dark-mode .entry-card,
+.planner-shell.dark-mode .game-card {
+    background: rgba(18, 21, 31, 0.98);
+    border-color: rgba(233, 236, 245, 0.12);
+}
+
+.planner-shell.dark-mode .calendar-day {
+    background: rgba(18, 21, 31, 0.96);
+    color: #f6f7fb;
+    border-color: rgba(233, 236, 245, 0.12);
+}
+
+.planner-shell.dark-mode .calendar-day.selected {
+    background: linear-gradient(180deg, rgba(239, 60, 67, 0.18), rgba(18, 21, 31, 0.98));
+    border-color: #ef3c43;
+}
+
+.planner-shell.dark-mode .calendar-day.has-items {
+    border-color: rgba(239, 60, 67, 0.5);
+}
+
+.planner-shell.dark-mode .swatch {
+    border-color: rgba(233, 236, 245, 0.18);
+}
+
+.planner-shell.dark-mode .game-cover {
+    background: rgba(233, 236, 245, 0.08);
+}
+
+.planner-shell.dark-mode.theme-persona {
+    --planner-bg-start: #12101d;
+    --planner-bg-end: #1a1630;
+    --planner-surface: rgba(24, 20, 41, 0.96);
+    --planner-surface-strong: #1e1932;
+    --planner-border: rgba(232, 224, 255, 0.12);
+    --planner-text: #f7f5ff;
+    --planner-muted: #beb4d7;
+}
+
+.planner-shell.dark-mode.theme-rwby {
+    --planner-bg-start: #0e0c12;
+    --planner-bg-end: #1a121b;
+    --planner-surface: rgba(18, 21, 31, 0.96);
+    --planner-surface-strong: #171b28;
+    --planner-border: rgba(255, 255, 255, 0.12);
+    --planner-text: #f6f7fb;
+    --planner-muted: #c5ccd9;
+}
+
+.planner-shell.dark-mode.theme-pokemon {
+    --planner-bg-start: #0f172a;
+    --planner-bg-end: #1e1b4b;
+    --planner-surface: rgba(15, 23, 42, 0.96);
+    --planner-surface-strong: #16213e;
+    --planner-border: rgba(191, 219, 254, 0.16);
+    --planner-text: #f8fbff;
+    --planner-muted: #c7d2fe;
+}
+
+.planner-shell.dark-mode.theme-dnd {
+    --planner-bg-start: #191113;
+    --planner-bg-end: #241428;
+    --planner-surface: rgba(28, 18, 28, 0.96);
+    --planner-surface-strong: #23152a;
+    --planner-border: rgba(245, 208, 254, 0.12);
+    --planner-text: #fbf7ff;
+    --planner-muted: #d7c9ea;
+}
+
+.planner-shell.dark-mode.theme-cozy {
+    --planner-bg-start: #22141f;
+    --planner-bg-end: #341d2a;
+    --planner-surface: rgba(36, 23, 35, 0.96);
+    --planner-surface-strong: #2d1a2a;
+    --planner-border: rgba(255, 220, 240, 0.12);
+    --planner-text: #fff8fb;
+    --planner-muted: #e2bfd1;
+}
+
+.planner-shell.dark-mode.theme-retro {
+    --planner-bg-start: #08111f;
+    --planner-bg-end: #131b2e;
+    --planner-surface: rgba(10, 16, 30, 0.96);
+    --planner-surface-strong: #111a2c;
+    --planner-border: rgba(192, 228, 255, 0.14);
+    --planner-text: #f6fbff;
+    --planner-muted: #b7d4ea;
+}
+
+.planner-shell:not(.dark-mode) .app-bar,
+.planner-shell:not(.dark-mode) .side-panel,
+.planner-shell:not(.dark-mode) .roadmap-panel,
+.planner-shell:not(.dark-mode) .metric-card,
+.planner-shell:not(.dark-mode) .roadmap-card,
+.planner-shell:not(.dark-mode) .planner-panel,
+.planner-shell:not(.dark-mode) .hero-panel,
+.planner-shell:not(.dark-mode) .entry-card,
+.planner-shell:not(.dark-mode) .game-card {
+    background: var(--planner-surface);
+    color: var(--planner-text);
+    border-color: var(--planner-border);
+}
+
+.planner-shell:not(.dark-mode) .hero-panel {
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--planner-accent) 14%, transparent), var(--planner-surface-strong));
+}
+
+.planner-shell:not(.dark-mode) .hero-copy,
+.planner-shell:not(.dark-mode) .muted,
+.planner-shell:not(.dark-mode) .weekday {
+    color: var(--planner-muted);
+}
+
+.planner-shell:not(.dark-mode) .calendar-day {
+    background: var(--planner-surface-strong);
+    color: var(--planner-text);
+    border-color: var(--planner-border);
+}
+
+.planner-shell:not(.dark-mode) .calendar-day.selected {
+    border-color: var(--planner-accent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--planner-accent) 15%, transparent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--planner-accent) 14%, transparent), var(--planner-surface-strong));
+}
+
+.planner-shell:not(.dark-mode) .calendar-day.has-items {
+    border-color: color-mix(in srgb, var(--planner-accent) 42%, transparent);
+}
+
+.planner-shell:not(.dark-mode) .entry-card {
+    border-left-color: var(--planner-accent);
+}
+
+.planner-shell:not(.dark-mode) .game-cover,
+.planner-shell:not(.dark-mode) .steam-library-table .steam-library-image {
+    background: color-mix(in srgb, var(--planner-accent) 8%, rgba(18, 19, 26, 0.06));
+}
+
+.drawer-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 18px 12px;
+}
+
+.drawer-title {
+    margin: 0;
+}
+
+.hero-panel,
+.side-panel,
+.roadmap-panel,
+.metric-card,
+.roadmap-card,
+.planner-panel {
+    border-radius: 24px;
+}
+
+.home-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.home-top-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.hero-panel {
+    background:
+        linear-gradient(135deg, rgba(195, 37, 45, 0.12), rgba(255, 255, 255, 0.98));
+    min-height: 100%;
+}
+
+.hero-title {
+    max-width: 11ch;
+}
+
+.hero-copy,
+.muted {
+    color: #5f6675;
+}
+
+.metric-grid {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.metric-card,
+.side-panel,
+.roadmap-panel,
+.planner-panel {
+    background: rgba(255, 255, 255, 0.96);
+}
+
+.roadmap-card {
+    height: 100%;
+    background: #ffffff;
+}
+
+.recent-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 4px;
+}
+
+.hero-actions {
+    flex-wrap: wrap;
+}
+
+.planner-panel {
+    box-shadow: 0 18px 45px rgba(12, 14, 20, 0.12);
+}
+
+.weekday-grid,
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.calendar-day-cell {
+    min-width: 0;
+}
+
+.weekday {
+    text-align: center;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #5f6675;
+    font-weight: 700;
+}
+
+.calendar-day {
+    width: 100%;
+    min-height: 84px;
+    border-radius: 18px;
+    border: 1px solid rgba(18, 19, 26, 0.09);
+    background: #ffffff;
+    color: #12131a;
+    padding: 10px;
+    text-align: left;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.calendar-day-content {
+    align-items: flex-start;
+}
+
+.calendar-badges {
+    flex-wrap: wrap;
+}
+
+.calendar-day.selected {
+    border-color: #c3252d;
+    box-shadow: inset 0 0 0 1px rgba(195, 37, 45, 0.15);
+    background: linear-gradient(180deg, rgba(195, 37, 45, 0.14), rgba(255, 255, 255, 0.99));
+}
+
+.calendar-day.has-items {
+    border-color: rgba(195, 37, 45, 0.42);
+}
+
+.calendar-day.outside {
+    opacity: 0.45;
+}
+
+.selected-day-panel {
+    padding-top: 8px;
+}
+
+.entry-card {
+    border: 1px solid rgba(18, 19, 26, 0.08);
+    border-left: 6px solid #c3252d;
+    border-radius: 20px;
+    background: #ffffff;
+}
+
+.game-card {
+    border: 1px solid rgba(18, 19, 26, 0.08);
+    border-radius: 20px;
+    background: #ffffff;
+}
+
+.game-cover {
+    width: 120px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 16px;
+    background: rgba(18, 19, 26, 0.06);
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+}
+
+.game-cover-placeholder {
+    font-size: 2rem;
+}
+
+.game-card-copy {
+    min-width: 0;
+}
+
+.steam-library-header {
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.steam-library-table .steam-library-image {
+    width: 128px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 14px;
+    flex: 0 0 auto;
+    background: rgba(18, 19, 26, 0.06);
+}
+
+.steam-library-copy {
+    min-width: 0;
+}
+
+.steam-library-table .mud-table-container {
+    border-radius: 18px;
+}
+
+.finance-stack {
+    min-width: 0;
+}
+
+.finance-toolbar {
+    flex-wrap: wrap;
+}
+
+.finance-table .mud-table-container {
+    border-radius: 18px;
+}
+
+.finance-table .mud-table {
+    min-width: 760px;
+}
+
+.finance-table .mud-table-cell {
+    vertical-align: top;
+}
+
+.finance-table .mud-table-cell:last-child {
+    white-space: nowrap;
+}
+
+.finance-table .mud-table-head th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.section-card {
+    border-left: 4px solid transparent;
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--planner-surface-strong) 92%, transparent);
+}
+
+.planner-shell.dark-mode .steam-library-table .steam-library-image {
+    background: rgba(233, 236, 245, 0.08);
+}
+
+.planner-shell.dark-mode .steam-library-table .mud-table-container {
+    border-color: rgba(233, 236, 245, 0.12);
+}
+
+@media (max-width: 1024px) {
+    .weekday-grid,
+    .calendar-grid {
+        gap: 6px;
+    }
+
+    .home-top-row {
+        grid-template-columns: 1fr;
+    }
+
+    .recent-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .weekday-grid,
+    .calendar-grid {
+        grid-template-columns: repeat(7, minmax(84px, 1fr));
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .metric-grid,
+    .recent-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    border: 1px solid rgba(18, 19, 26, 0.12);
+}
+
+@media (min-width: 1280px) {
+    .app-shell {
+        padding: 32px;
+    }
+}
+

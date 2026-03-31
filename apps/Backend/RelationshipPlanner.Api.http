@@ -1,0 +1,6 @@
+@RelationshipPlanner.Api_HostAddress = http://localhost:5283
+
+GET {{RelationshipPlanner.Api_HostAddress}}/health
+Accept: application/json
+
+###

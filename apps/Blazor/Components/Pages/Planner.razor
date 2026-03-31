@@ -1,0 +1,444 @@
+@page "/planner"
+@implements IDisposable
+@inject PlannerRepository Repository
+@inject PlannerState State
+@inject PlannerRepository Repository
+
+<PageTitle>Planner</PageTitle>
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" lg="7">
+        <MudPaper Elevation="1" Class="planner-panel pa-6">
+            <MudStack Spacing="3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <div>
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Shared calendar</MudText>
+                        <MudText Typo="Typo.h4">@_monthTitle</MudText>
+                    </div>
+                    <MudStack Row="true" Spacing="1">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="PreviousMonth">Prev</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="GoToday">Today</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="NextMonth">Next</MudButton>
+                    </MudStack>
+                </MudStack>
+
+                <div class="weekday-grid">
+                    @foreach (var weekday in _weekdays)
+                    {
+                        <div class="weekday">@weekday</div>
+                    }
+                </div>
+
+                <div class="calendar-grid">
+                    @foreach (var day in _calendarDays)
+                    {
+                        <div class="calendar-day-cell">
+                            <MudButton Variant="Variant.Text"
+                                       Class="@GetDayClass(day)"
+                                       Disabled="@(!day.InMonth)"
+                                       OnClick="() => SelectDate(day.Date)">
+                                <MudStack Spacing="1" Class="calendar-day-content">
+                                    <MudText Typo="Typo.subtitle2">@day.Date.Day</MudText>
+                                    <MudStack Row="true" Spacing="1" Class="calendar-badges">
+                                        @if (_entriesByDate.TryGetValue(day.Date, out var items))
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">
+                                                @items.Count
+                                            </MudChip>
+                                        }
+                                    </MudStack>
+                                </MudStack>
+                            </MudButton>
+                        </div>
+                    }
+                </div>
+
+                <MudDivider />
+
+                <MudStack Class="selected-day-panel" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.overline" Color="Color.Secondary">Selected day</MudText>
+                            <MudText Typo="Typo.h6">@State.SelectedDate.ToString("dddd, dd MMMM yyyy")</MudText>
+                        </div>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="StartNewEntry">Add entry</MudButton>
+                    </MudStack>
+
+                    @if (_entriesByDate.TryGetValue(State.SelectedDate, out var selectedItems) && selectedItems.Count > 0)
+                    {
+                        <MudStack Spacing="2">
+                            @foreach (var entry in selectedItems)
+                            {
+                                <MudPaper Elevation="0" Class="entry-card pa-4" Style="@GetEntryCardStyle(entry.Kind)">
+                                    <MudStack Spacing="1">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                            <MudText Typo="Typo.subtitle1">@entry.Title</MudText>
+                                            <MudChip T="string" Variant="Variant.Filled" Style="@GetKindChipStyle(entry.Kind)">
+                                                @GetKindLabel(entry.Kind)
+                                            </MudChip>
+                                        </MudStack>
+                                        <MudText Typo="Typo.body2">@entry.Notes</MudText>
+                                        <MudStack Row="true" Spacing="1">
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default">@GetUserName(entry.UserId)</MudChip>
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Style="@GetStatusChipStyle(entry.Status)">
+                                                @GetStatusLabel(entry.Status)
+                                            </MudChip>
+                                        </MudStack>
+                                        <MudStack Row="true" Spacing="1">
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => EditEntry(entry)">Edit</MudButton>
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteEntry(entry.Id)">Delete</MudButton>
+                                        </MudStack>
+                                    </MudStack>
+                                </MudPaper>
+                            }
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                            Nothing saved for this day yet.
+                        </MudAlert>
+                    }
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" lg="5">
+        <MudPaper Elevation="1" Class="planner-panel pa-6">
+            <MudStack Spacing="3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <div>
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">@(_editing.Id == 0 ? "Add" : "Edit") entry</MudText>
+                        <MudText Typo="Typo.h5">@(_editing.Id == 0 ? "New planner item" : "Update planner item")</MudText>
+                    </div>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ResetDraft">Reset</MudButton>
+                </MudStack>
+
+                <MudStack Spacing="2">
+                    <MudTextField @bind-Value="_editing.Title" Label="Title" Variant="Variant.Outlined" />
+                    <MudSelect T="string" @bind-Value="_editing.Kind" Label="Type" Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("date")">Date idea</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("reminder")">Reminder</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("countdown")">Countdown</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("memory")">Memory</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("got_together")">Got together</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("game_plan")">Game plan</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("game_status")">Game status</MudSelectItem>
+                    </MudSelect>
+                    <MudTextField @bind-Value="_editing.TargetDateText"
+                                  Label="Date"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Date" />
+                    <MudSelect T="int" @bind-Value="_editing.UserId" Label="User" Variant="Variant.Outlined">
+                        @foreach (var user in _users)
+                        {
+                            <MudSelectItem T="int" Value="@user.Id">@user.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSelect T="string" @bind-Value="_editing.Status" Label="Status" Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("planned")">Planned</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("playing")">Playing</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("done")">Done</MudSelectItem>
+                    </MudSelect>
+                    <MudTextField @bind-Value="_editing.Notes" Label="Notes" Variant="Variant.Outlined" Lines="5" />
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveEntryAsync">Save entry</MudButton>
+                </MudStack>
+
+                @if (!string.IsNullOrWhiteSpace(_message))
+                {
+                    <MudAlert Severity="@_messageSeverity" Variant="Variant.Outlined">@_message</MudAlert>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private readonly string[] _weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    private readonly EntryDraft _editing = new();
+    private List<PlannerUser> _users = [];
+    private List<PlannerEntry> _entries = [];
+    private PlannerSettings _settings = new();
+    private Dictionary<DateOnly, List<PlannerEntry>> _entriesByDate = new();
+    private List<CalendarDay> _calendarDays = [];
+    private string _monthTitle = string.Empty;
+    private string _message = string.Empty;
+    private Severity _messageSeverity = Severity.Info;
+    private DateOnly _viewMonth = DateOnly.FromDateTime(DateTime.Today).AddDays(1 - DateTime.Today.Day);
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.Changed += OnPlannerStateChanged;
+        await LoadAsync();
+        if (State.SelectedDate == default)
+        {
+            State.SelectedDate = DateOnly.FromDateTime(DateTime.Today);
+        }
+
+        _viewMonth = new DateOnly(State.SelectedDate.Year, State.SelectedDate.Month, 1);
+        RebuildCalendar();
+    }
+
+    private async Task LoadAsync()
+    {
+        _users = (await Repository.GetUsersAsync()).ToList();
+        _settings = await Repository.GetSettingsAsync();
+        _entries = (await Repository.GetEntriesAsync()).ToList();
+        _entriesByDate = _entries
+            .Where(x => x.TargetDate.HasValue)
+            .GroupBy(x => x.TargetDate!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+    private void RebuildCalendar()
+    {
+        _monthTitle = _viewMonth.ToString("MMMM yyyy");
+        var firstDay = _viewMonth;
+        var start = firstDay.AddDays(-(int)firstDay.DayOfWeek);
+        var last = firstDay.AddMonths(1).AddDays(-1);
+        var end = last.AddDays(6 - (int)last.DayOfWeek);
+
+        var days = new List<CalendarDay>();
+        for (var day = start; day <= end; day = day.AddDays(1))
+        {
+            days.Add(new CalendarDay(day, day.Month == _viewMonth.Month));
+        }
+
+        _calendarDays = days;
+    }
+
+    private void SelectDate(DateOnly date)
+    {
+        State.SelectedDate = date;
+        _viewMonth = new DateOnly(date.Year, date.Month, 1);
+        RebuildCalendar();
+    }
+
+    private void PreviousMonth()
+    {
+        _viewMonth = _viewMonth.AddMonths(-1);
+        State.SelectedDate = new DateOnly(_viewMonth.Year, _viewMonth.Month, 1);
+        RebuildCalendar();
+    }
+
+    private void NextMonth()
+    {
+        _viewMonth = _viewMonth.AddMonths(1);
+        State.SelectedDate = new DateOnly(_viewMonth.Year, _viewMonth.Month, 1);
+        RebuildCalendar();
+    }
+
+    private void GoToday()
+    {
+        SelectDate(DateOnly.FromDateTime(DateTime.Today));
+    }
+
+    private void StartNewEntry()
+    {
+        ResetDraft();
+        _editing.TargetDate = State.SelectedDate;
+        _editing.UserId = GetCurrentUserId();
+    }
+
+    private void EditEntry(PlannerEntry entry)
+    {
+        _editing.Id = entry.Id;
+        _editing.Title = entry.Title;
+        _editing.Kind = entry.Kind;
+        _editing.TargetDate = entry.TargetDate;
+        _editing.UserId = entry.UserId;
+        _editing.Status = entry.Status;
+        _editing.Notes = entry.Notes;
+    }
+
+    private async Task SaveEntryAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_editing.Title))
+        {
+            _messageSeverity = Severity.Warning;
+            _message = "Give the entry a title first.";
+            return;
+        }
+
+        await Repository.SaveEntryAsync(new PlannerEntry
+        {
+            Id = _editing.Id,
+            Title = _editing.Title.Trim(),
+            Kind = _editing.Kind,
+            TargetDate = _editing.TargetDate,
+            UserId = _editing.UserId == 0 ? GetCurrentUserId() : _editing.UserId,
+            Status = _editing.Status,
+            Notes = _editing.Notes.Trim()
+        });
+
+        _messageSeverity = Severity.Success;
+        _message = "Saved to the planner.";
+        ResetDraft();
+        await LoadAsync();
+        RebuildCalendar();
+    }
+
+    private async Task DeleteEntry(int id)
+    {
+        await Repository.DeleteEntryAsync(id);
+        _messageSeverity = Severity.Info;
+        _message = "Entry removed.";
+        await LoadAsync();
+        RebuildCalendar();
+    }
+
+    private void ResetDraft()
+    {
+        _editing.Id = 0;
+        _editing.Title = string.Empty;
+        _editing.Kind = "date";
+        _editing.TargetDate = State.SelectedDate;
+        _editing.UserId = GetCurrentUserId();
+        _editing.Status = "planned";
+        _editing.Notes = string.Empty;
+        _editing.TargetDateText = _editing.TargetDate?.ToString("yyyy-MM-dd");
+    }
+
+    private int GetCurrentUserId()
+    {
+        return State.SelectedUserId ?? _users.FirstOrDefault()?.Id ?? 0;
+    }
+
+    private void OnPlannerStateChanged()
+    {
+        _ = ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        await LoadAsync();
+        if (State.SelectedDate == default)
+        {
+            State.SelectedDate = DateOnly.FromDateTime(DateTime.Today);
+        }
+
+        _viewMonth = new DateOnly(State.SelectedDate.Year, State.SelectedDate.Month, 1);
+        RebuildCalendar();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        State.Changed -= OnPlannerStateChanged;
+    }
+
+    private string GetUserName(int userId)
+    {
+        return _users.FirstOrDefault(user => user.Id == userId)?.Name ?? "Unknown";
+    }
+
+    private static string GetKindLabel(string? kind) => kind switch
+    {
+        "date" => "Date idea",
+        "reminder" => "Reminder",
+        "countdown" => "Countdown",
+        "memory" => "Memory",
+        "got_together" => "Got together",
+        "game_plan" => "Game plan",
+        "game_status" => "Game status",
+        _ => "Entry"
+    };
+
+    private string GetEntryCardStyle(string? kind)
+    {
+        var color = GetKindColor(kind);
+        return $"border-left-color:{color};";
+    }
+
+    private string GetKindChipStyle(string? kind)
+    {
+        var color = GetKindColor(kind);
+        return $"background:{color};color:#fff;";
+    }
+
+    private string GetStatusChipStyle(string? status)
+    {
+        var color = GetStatusColor(status);
+        return $"background:{color};color:#fff;";
+    }
+
+    private string GetKindColor(string? kind) => kind switch
+    {
+        "date" => _settings.DateIdeaColor,
+        "reminder" => _settings.ReminderColor,
+        "countdown" => _settings.CountdownColor,
+        "memory" => _settings.MemoryColor,
+        "got_together" => _settings.GotTogetherColor,
+        "game_plan" => _settings.DateIdeaColor,
+        "game_status" => _settings.FinishedColor,
+        _ => _settings.DateIdeaColor
+    };
+
+    private string GetStatusLabel(string? status) => status switch
+    {
+        "planned" => "Planned",
+        "playing" => "Playing",
+        "done" => "Done",
+        _ => "Planned"
+    };
+
+    private string GetStatusColor(string? status) => status switch
+    {
+        "planned" => _settings.DateIdeaColor,
+        "playing" => _settings.PlayingColor,
+        "done" => _settings.FinishedColor,
+        _ => _settings.DateIdeaColor
+    };
+
+    private string GetDayClass(CalendarDay day)
+    {
+        var classes = new List<string> { "calendar-day" };
+        if (!day.InMonth)
+        {
+            classes.Add("outside");
+        }
+
+        if (day.Date == State.SelectedDate)
+        {
+            classes.Add("selected");
+        }
+
+        if (_entriesByDate.ContainsKey(day.Date))
+        {
+            classes.Add("has-items");
+        }
+
+        return string.Join(" ", classes);
+    }
+
+    private sealed record CalendarDay(DateOnly Date, bool InMonth);
+
+    private sealed class EntryDraft
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Kind { get; set; } = "date";
+        public DateOnly? TargetDate { get; set; }
+        public int UserId { get; set; }
+        public string Status { get; set; } = "planned";
+        public string Notes { get; set; } = string.Empty;
+
+        public string? TargetDateText
+        {
+            get => TargetDate?.ToString("yyyy-MM-dd");
+            set
+            {
+                if (DateOnly.TryParse(value, out var parsed))
+                {
+                    TargetDate = parsed;
+                }
+                else
+                {
+                    TargetDate = null;
+                }
+            }
+        }
+    }
+}
+

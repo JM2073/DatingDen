@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Relationship Planner</string>
+    <string name="app_text">Native Android client scaffold</string>
+    <string name="app_subtitle">Ready to connect to the shared backend API.</string>
+</resources>

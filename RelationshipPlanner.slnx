@@ -1,4 +1,8 @@
 <Solution>
-  <Project Path="apps/BlazorApp/RelationshipPlanner.Rebuild.csproj" />
-  <Project Path="apps/MobileApp/RelationshipPlanner.Mobile.csproj" />
+  <Project Path="apps/Blazor/RelationshipPlanner.Blazor.csproj" />
+  <Project Path="apps/Backend/RelationshipPlanner.Api.csproj" />
+  <Project Path="tests/RelationshipPlanner.Tests/RelationshipPlanner.Tests.csproj" />
+  <Project Path="apps/Android/RelationshipPlanner.Android.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
 </Solution>

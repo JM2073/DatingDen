@@ -2,8 +2,8 @@
 
 A mobile-friendly relationship planning app starter for storing date ideas, reminders, countdowns, and memories in a local SQLite database that persists across restarts.
 
-The current app uses a MudBlazor-inspired visual style, and the separate Blazor/MudBlazor rebuild starter lives in `../apps/BlazorApp/`.
-There is also a .NET MAUI mobile project in `../apps/MobileApp/`, ready for Android emulator testing.
+The current app uses a MudBlazor-inspired visual style, and the separate Blazor web app lives in `../apps/Blazor/`.
+There is also a native .NET for Android client in `../apps/Android/`.
 
 ## What It Includes
 
@@ -46,8 +46,8 @@ The app has two parts, but they run together in one Node process:
 
 - The repo now includes `../RelationshipPlanner.slnx`, which contains both the Blazor rebuild and the MAUI mobile project.
 - Open `../RelationshipPlanner.slnx` in Visual Studio to work with the .NET apps together.
-- The mobile project is `../apps/MobileApp/`.
-- In Visual Studio, set `../apps/MobileApp` as the startup project and use the Android emulator to test and debug it.
+- The Android project is `../apps/Android/`.
+- In Visual Studio, set `../apps/Android` as the startup project and use a physical device or emulator to test and debug it.
 
 The database file stays on disk, so your saved items remain after stopping and restarting the app.
 
@@ -209,7 +209,7 @@ These tables are created and migrated automatically on startup so the app can ke
 - `public/styles.css` - responsive styling
 - `public/app.js` - client-side UI logic, calendar rendering, and filters
 - `data/relationship-planner.db` - local saved data
-- `apps/BlazorApp/` - separate Blazor/MudBlazor rebuild starter
+- `apps/Blazor/` - separate Blazor web app
 
 ## API
 
