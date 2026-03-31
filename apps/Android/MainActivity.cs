@@ -1,16 +1,22 @@
 using Android.App;
+using Android.Content;
 using Android.Graphics;
 using Android.Graphics.Drawables;
 using Android.OS;
 using Android.Util;
 using Android.Views;
 using Android.Widget;
+using RelationshipPlanner.Android.Data;
 
 namespace RelationshipPlanner.Android;
 
 [Activity(Label = "Relationship Planner", MainLauncher = true)]
 public class MainActivity : Activity
 {
+    private const string PreferencesName = "relationship_planner_android";
+    private const string ApiBaseUrlKey = "api_base_url";
+    private const string DefaultApiBaseUrl = "http://10.0.2.2:5283/";
+
     private readonly global::Android.Graphics.Color _backgroundColor = new(Color.ParseColor("#0e1422"));
     private readonly global::Android.Graphics.Color _surfaceColor = new(Color.ParseColor("#182033"));
     private readonly global::Android.Graphics.Color _surfaceAltColor = new(Color.ParseColor("#20293a"));
@@ -20,12 +26,23 @@ public class MainActivity : Activity
     private readonly global::Android.Graphics.Color _accentColor = new(Color.ParseColor("#f6a57a"));
     private EditText? _apiBaseUrlEditText;
     private TextView? _connectionStatusText;
+    private HttpClient? _httpClient;
+    private PlannerApiClient? _apiClient;
+    private string _apiBaseUrl = DefaultApiBaseUrl;
 
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
 
         SetContentView(BuildContentView());
+        LoadSavedPreferences();
+        ConfigureApiClient(_apiBaseUrl);
+    }
+
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+        _httpClient?.Dispose();
     }
 
     private View BuildContentView()
@@ -86,7 +103,7 @@ public class MainActivity : Activity
         apiLabel.SetPadding(0, Dp(12), 0, 0);
         card.AddView(apiLabel);
 
-        var apiBaseUrl = CreateField("http://192.168.1.50:5283/");
+        var apiBaseUrl = CreateField(_apiBaseUrl);
         _apiBaseUrlEditText = apiBaseUrl;
         card.AddView(apiBaseUrl);
 
@@ -128,19 +145,44 @@ public class MainActivity : Activity
             return;
         }
 
-        SetConnectionStatus($"Saved URL shell value: {value}");
+        _apiBaseUrl = NormalizeApiBaseUrl(value);
+        _apiBaseUrlEditText!.Text = _apiBaseUrl;
+        SavePreference(ApiBaseUrlKey, _apiBaseUrl);
+        ConfigureApiClient(_apiBaseUrl);
+        SetConnectionStatus($"Saved backend URL: {_apiBaseUrl}");
     }
 
-    private void HandleRefreshClicked(object? sender, EventArgs e)
+    private async void HandleRefreshClicked(object? sender, EventArgs e)
     {
-        var currentValue = _apiBaseUrlEditText?.Text?.Trim();
+        var currentValue = NormalizeApiBaseUrl(_apiBaseUrlEditText?.Text);
         if (string.IsNullOrWhiteSpace(currentValue))
         {
             SetConnectionStatus("Refresh tapped, but no backend URL has been entered yet.");
             return;
         }
 
-        SetConnectionStatus($"Refresh tapped for {currentValue}");
+        _apiBaseUrl = currentValue;
+        ConfigureApiClient(_apiBaseUrl);
+        SavePreference(ApiBaseUrlKey, _apiBaseUrl);
+
+        if (_apiClient is null)
+        {
+            SetConnectionStatus("API client is not ready yet.");
+            return;
+        }
+
+        SetConnectionStatus($"Checking {_apiBaseUrl}...");
+
+        try
+        {
+            var health = await _apiClient.GetHealthAsync();
+            var serviceName = string.IsNullOrWhiteSpace(health?.Service) ? "backend" : health.Service;
+            SetConnectionStatus($"Connected to {serviceName} at {_apiBaseUrl}");
+        }
+        catch (Exception ex)
+        {
+            SetConnectionStatus($"Unable to reach backend: {ex.Message}");
+        }
     }
 
     private LinearLayout CreateCurrentUserCard()
@@ -368,5 +410,53 @@ public class MainActivity : Activity
         {
             _connectionStatusText.Text = message;
         }
+    }
+
+    private void LoadSavedPreferences()
+    {
+        var prefs = GetSharedPreferences(PreferencesName, global::Android.Content.FileCreationMode.Private);
+        _apiBaseUrl = NormalizeApiBaseUrl(prefs.GetString(ApiBaseUrlKey, DefaultApiBaseUrl));
+
+        if (_apiBaseUrlEditText is not null)
+        {
+            _apiBaseUrlEditText.Text = _apiBaseUrl;
+        }
+    }
+
+    private void ConfigureApiClient(string baseUrl)
+    {
+        _httpClient?.Dispose();
+        _httpClient = new HttpClient
+        {
+            BaseAddress = new Uri(baseUrl, UriKind.Absolute)
+        };
+        _apiClient = new PlannerApiClient(_httpClient);
+    }
+
+    private void SavePreference(string key, string value)
+    {
+        var prefs = GetSharedPreferences(PreferencesName, global::Android.Content.FileCreationMode.Private);
+        prefs.Edit().PutString(key, value).Apply();
+    }
+
+    private string NormalizeApiBaseUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return DefaultApiBaseUrl;
+        }
+
+        if (!Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri))
+        {
+            return DefaultApiBaseUrl;
+        }
+
+        var builder = new UriBuilder(uri);
+        if (!builder.Path.EndsWith('/'))
+        {
+            builder.Path = $"{builder.Path.TrimEnd('/')}/";
+        }
+
+        return builder.Uri.ToString();
     }
 }
