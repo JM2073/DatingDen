@@ -8,10 +8,9 @@ Open the solution in Visual Studio and run the `RelationshipPlanner.Android` pro
 
 ## What it does now
 
-- Lets you enter the backend API base URL for your lab or local machine.
-- Loads planner data from the shared ASP.NET Core backend.
-- Shows a per-device current user picker.
-- Displays planner and finance snapshots from the selected user.
+- Shows a very small native title screen baseline.
+- Confirms the Android app launches cleanly before we add the next feature.
+- Gives us a safe starting point for gradually rebuilding the mobile experience.
 
 ## Notes
 
@@ -21,6 +20,6 @@ Open the solution in Visual Studio and run the `RelationshipPlanner.Android` pro
 
 ## What it is for
 
-- Native Android APK development
-- Shared backend API integration
-- Future mobile-first planner features
+- Native Android APK development.
+- Gradual feature-by-feature rebuilds.
+- Shared backend API integration when we reintroduce data screens.

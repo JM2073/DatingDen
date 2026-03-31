@@ -12,5 +12,6 @@
     <string name="current_user_none">No user selected yet.</string>
     <string name="planner_summary_header">Planner snapshot</string>
     <string name="finance_summary_header">Finance snapshot</string>
+    <string name="recent_entries_header">Recent entries</string>
     <string name="summary_placeholder">No data loaded yet.</string>
 </resources>
