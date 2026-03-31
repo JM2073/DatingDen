@@ -37,7 +37,7 @@ dotnet watch
 - RAWG game search with optional Steam ownership checks
 - A browsable Steam library table for the active user, when Steam is linked
 - Shared planner data through the backend API
-- Finance persistence still lives in the local Blazor app repository for now
+- Finance data is now served through the backend API too
 
 ## Run it
 

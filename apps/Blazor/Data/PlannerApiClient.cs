@@ -111,4 +111,115 @@ public sealed class PlannerApiClient
             LastUpdated = entries.Count == 0 ? null : entries.Max(entry => entry.UpdatedAt)
         };
     }
+
+    public async Task<IReadOnlyList<FinanceItem>> GetFinanceItemsAsync(int userId, DateOnly month, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/finance/items?userId={userId}&month={month:yyyy-MM-dd}";
+        return await _httpClient.GetFromJsonAsync<List<FinanceItem>>(url, cancellationToken) ?? [];
+    }
+
+    public async Task<FinanceItem?> GetFinanceItemAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _httpClient.GetFromJsonAsync<FinanceItem>($"api/finance/items/{id}", cancellationToken);
+    }
+
+    public async Task<FinanceItem> SaveFinanceItemAsync(FinanceItem item, CancellationToken cancellationToken = default)
+    {
+        using var response = item.Id <= 0
+            ? await _httpClient.PostAsJsonAsync("api/finance/items", item, cancellationToken)
+            : await _httpClient.PutAsJsonAsync($"api/finance/items/{item.Id}", item, cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<FinanceItem>(cancellationToken: cancellationToken)) ?? item;
+    }
+
+    public async Task DeleteFinanceItemAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.DeleteAsync($"api/finance/items/{id}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<FinanceSummary> GetFinanceSummaryAsync(int userId, DateOnly month, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/finance/summary?userId={userId}&month={month:yyyy-MM-dd}";
+        return await _httpClient.GetFromJsonAsync<FinanceSummary>(url, cancellationToken) ?? new FinanceSummary();
+    }
+
+    public async Task<IReadOnlyList<FinanceSection>> GetFinanceSectionsAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        return await _httpClient.GetFromJsonAsync<List<FinanceSection>>($"api/finance/sections?userId={userId}", cancellationToken) ?? [];
+    }
+
+    public async Task<FinanceSection?> GetFinanceSectionAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _httpClient.GetFromJsonAsync<FinanceSection>($"api/finance/sections/{id}", cancellationToken);
+    }
+
+    public async Task<FinanceSection> SaveFinanceSectionAsync(FinanceSection section, CancellationToken cancellationToken = default)
+    {
+        using var response = section.Id <= 0
+            ? await _httpClient.PostAsJsonAsync("api/finance/sections", section, cancellationToken)
+            : await _httpClient.PutAsJsonAsync($"api/finance/sections/{section.Id}", section, cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<FinanceSection>(cancellationToken: cancellationToken)) ?? section;
+    }
+
+    public async Task DeleteFinanceSectionAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.DeleteAsync($"api/finance/sections/{id}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task ReassignFinanceItemsAsync(int userId, string fromSectionKey, string toSectionKey, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/finance/sections/reassign?userId={userId}&fromSectionKey={Uri.EscapeDataString(fromSectionKey)}&toSectionKey={Uri.EscapeDataString(toSectionKey)}";
+        using var response = await _httpClient.PostAsync(url, null, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<IReadOnlyList<FinanceTemplateItem>> GetFinanceTemplatesAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        return await _httpClient.GetFromJsonAsync<List<FinanceTemplateItem>>($"api/finance/templates?userId={userId}", cancellationToken) ?? [];
+    }
+
+    public async Task<FinanceTemplateItem?> GetFinanceTemplateAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _httpClient.GetFromJsonAsync<FinanceTemplateItem>($"api/finance/templates/{id}", cancellationToken);
+    }
+
+    public async Task<FinanceTemplateItem> SaveFinanceTemplateAsync(FinanceTemplateItem template, CancellationToken cancellationToken = default)
+    {
+        using var response = template.Id <= 0
+            ? await _httpClient.PostAsJsonAsync("api/finance/templates", template, cancellationToken)
+            : await _httpClient.PutAsJsonAsync($"api/finance/templates/{template.Id}", template, cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<FinanceTemplateItem>(cancellationToken: cancellationToken)) ?? template;
+    }
+
+    public async Task DeleteFinanceTemplateAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.DeleteAsync($"api/finance/templates/{id}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<bool> HasFinanceImportAsync(int userId, DateOnly month, string source, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/finance/imports/exists?userId={userId}&month={month:yyyy-MM-dd}&source={Uri.EscapeDataString(source)}";
+        var payload = await _httpClient.GetFromJsonAsync<FinanceImportExistsResponse>(url, cancellationToken);
+        return payload?.Exists == true;
+    }
+
+    public async Task RecordFinanceImportAsync(int userId, DateOnly month, string source, CancellationToken cancellationToken = default)
+    {
+        var url = $"api/finance/imports?userId={userId}&month={month:yyyy-MM-dd}&source={Uri.EscapeDataString(source)}";
+        using var response = await _httpClient.PostAsync(url, null, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+}
+
+public sealed class FinanceImportExistsResponse
+{
+    public bool Exists { get; set; }
 }

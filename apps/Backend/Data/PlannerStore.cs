@@ -189,9 +189,12 @@ public sealed class PlannerStore
                     null, null, N'#c3252d', N'#8d1117', N'#8f5c24', N'#6f3db8',
                     N'#d14b75', N'#3b6ea8', N'#b56b16', N'#3f7a46', N'#6c4f95'
                 );
-                """;
+            """;
             await command.ExecuteNonQueryAsync();
         }
+
+        await EnsureDefaultFinanceSectionsForUserAsync(connection, 1);
+        await EnsureDefaultFinanceTemplatesForUserAsync(connection, 1);
     }
 
     public async Task<IReadOnlyList<PlannerUser>> GetUsersAsync()
@@ -546,6 +549,471 @@ public sealed class PlannerStore
         };
     }
 
+    public async Task<IReadOnlyList<FinanceItem>> GetFinanceItemsAsync(int userId, DateOnly month)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = """
+            select id, user_id, month_key, bucket, name, budget_amount, actual_amount, due_date, notes, is_shared, sort_order, created_at, updated_at
+            from dbo.planner_finance_items
+            where user_id = @user_id and month_key = @month_key
+            order by sort_order asc, bucket asc, name asc, id asc;
+            """;
+        command.Parameters.AddWithValue("@user_id", userId);
+        command.Parameters.AddWithValue("@month_key", GetMonthKey(month));
+
+        var items = new List<FinanceItem>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            items.Add(ReadFinanceItem(reader));
+        }
+
+        return items;
+    }
+
+    public async Task<FinanceItem?> GetFinanceItemAsync(int id)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var command = connection.CreateCommand();
+        command.CommandText = """
+            select id, user_id, month_key, bucket, name, budget_amount, actual_amount, due_date, notes, is_shared, sort_order, created_at, updated_at
+            from dbo.planner_finance_items
+            where id = @id;
+            """;
+        command.Parameters.AddWithValue("@id", id);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        return await reader.ReadAsync() ? ReadFinanceItem(reader) : null;
+    }
+
+    public async Task<FinanceItem> SaveFinanceItemAsync(FinanceItem item)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var now = DateTimeOffset.UtcNow;
+        if (item.Id != 0)
+        {
+            var existing = await GetFinanceItemAsync(item.Id);
+            if (existing is not null)
+            {
+                item.CreatedAt = existing.CreatedAt;
+            }
+        }
+
+        await using var command = connection.CreateCommand();
+        if (item.Id == 0)
+        {
+            command.CommandText = """
+                insert into dbo.planner_finance_items (
+                    user_id, month_key, bucket, name, budget_amount, actual_amount, due_date,
+                    notes, is_shared, sort_order, created_at, updated_at
+                )
+                output inserted.id
+                values (
+                    @user_id, @month_key, @bucket, @name, @budget_amount, @actual_amount, @due_date,
+                    @notes, @is_shared, @sort_order, @created_at, @updated_at
+                );
+                """;
+            command.Parameters.AddWithValue("@created_at", now);
+        }
+        else
+        {
+            command.CommandText = """
+                update dbo.planner_finance_items
+                set user_id = @user_id,
+                    month_key = @month_key,
+                    bucket = @bucket,
+                    name = @name,
+                    budget_amount = @budget_amount,
+                    actual_amount = @actual_amount,
+                    due_date = @due_date,
+                    notes = @notes,
+                    is_shared = @is_shared,
+                    sort_order = @sort_order,
+                    updated_at = @updated_at
+                where id = @id;
+                select @id;
+                """;
+            command.Parameters.AddWithValue("@id", item.Id);
+            command.Parameters.AddWithValue("@created_at", item.CreatedAt == default ? now : item.CreatedAt);
+        }
+
+        command.Parameters.AddWithValue("@user_id", item.UserId);
+        command.Parameters.AddWithValue("@month_key", string.IsNullOrWhiteSpace(item.MonthKey) ? GetMonthKey(DateOnly.FromDateTime(DateTime.Today)) : item.MonthKey);
+        command.Parameters.AddWithValue("@bucket", string.IsNullOrWhiteSpace(item.Bucket) ? "income" : item.Bucket);
+        command.Parameters.AddWithValue("@name", item.Name);
+        command.Parameters.AddWithValue("@budget_amount", item.BudgetAmount);
+        command.Parameters.AddWithValue("@actual_amount", item.ActualAmount);
+        command.Parameters.AddWithValue("@due_date", item.DueDate is null ? DBNull.Value : item.DueDate.Value.ToDateTime(TimeOnly.MinValue));
+        command.Parameters.AddWithValue("@notes", item.Notes);
+        command.Parameters.AddWithValue("@is_shared", item.IsShared);
+        command.Parameters.AddWithValue("@sort_order", item.SortOrder);
+        command.Parameters.AddWithValue("@updated_at", now);
+
+        item.Id = Convert.ToInt32(await command.ExecuteScalarAsync());
+        item.MonthKey = string.IsNullOrWhiteSpace(item.MonthKey) ? GetMonthKey(DateOnly.FromDateTime(DateTime.Today)) : item.MonthKey;
+        item.CreatedAt = item.CreatedAt == default ? now : item.CreatedAt;
+        item.UpdatedAt = now;
+        return item;
+    }
+
+    public async Task DeleteFinanceItemAsync(int id)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = "delete from dbo.planner_finance_items where id = @id;";
+        command.Parameters.AddWithValue("@id", id);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task<FinanceSummary> GetFinanceSummaryAsync(int userId, DateOnly month)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            select
+                count(*) as item_count,
+                coalesce(sum(case when bucket = 'income' then budget_amount else 0 end), 0) as budgeted_income,
+                coalesce(sum(case when bucket = 'income' then actual_amount else 0 end), 0) as actual_income,
+                coalesce(sum(case when bucket <> 'income' then budget_amount else 0 end), 0) as budgeted_outflow,
+                coalesce(sum(case when bucket <> 'income' then actual_amount else 0 end), 0) as actual_outflow,
+                coalesce(sum(case when bucket = 'savings' then budget_amount else 0 end), 0) as savings_budget,
+                coalesce(sum(case when bucket = 'cash' then budget_amount else 0 end), 0) as cash_budget,
+                max(updated_at) as last_updated
+            from dbo.planner_finance_items
+            where user_id = @user_id and month_key = @month_key;
+            """;
+        command.Parameters.AddWithValue("@user_id", userId);
+        command.Parameters.AddWithValue("@month_key", GetMonthKey(month));
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return new FinanceSummary();
+        }
+
+        return new FinanceSummary
+        {
+            ItemCount = GetInt(reader, 0),
+            BudgetedIncome = GetDecimalOrZero(reader, 1),
+            ActualIncome = GetDecimalOrZero(reader, 2),
+            BudgetedOutflow = GetDecimalOrZero(reader, 3),
+            ActualOutflow = GetDecimalOrZero(reader, 4),
+            SavingsBudget = GetDecimalOrZero(reader, 5),
+            CashBudget = GetDecimalOrZero(reader, 6),
+            LastUpdated = reader.IsDBNull(7) ? null : reader.GetDateTimeOffset(7)
+        };
+    }
+
+    public async Task<IReadOnlyList<FinanceSection>> GetFinanceSectionsAsync(int userId)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await EnsureDefaultFinanceSectionsForUserAsync(connection, userId);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            select id, user_id, section_key, name, color, sort_order, is_builtin
+            from dbo.planner_finance_sections
+            where user_id = @user_id
+            order by is_builtin desc, sort_order asc, name asc;
+            """;
+        command.Parameters.AddWithValue("@user_id", userId);
+
+        var sections = new List<FinanceSection>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            sections.Add(new FinanceSection
+            {
+                Id = reader.GetInt32(0),
+                UserId = reader.GetInt32(1),
+                SectionKey = reader.GetString(2),
+                Name = reader.GetString(3),
+                Color = reader.GetString(4),
+                SortOrder = reader.GetInt32(5),
+                IsBuiltin = reader.GetBoolean(6)
+            });
+        }
+
+        return sections;
+    }
+
+    public async Task<FinanceSection?> GetFinanceSectionAsync(int id)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            select id, user_id, section_key, name, color, sort_order, is_builtin
+            from dbo.planner_finance_sections
+            where id = @id;
+            """;
+        command.Parameters.AddWithValue("@id", id);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        return await reader.ReadAsync() ? new FinanceSection
+        {
+            Id = reader.GetInt32(0),
+            UserId = reader.GetInt32(1),
+            SectionKey = reader.GetString(2),
+            Name = reader.GetString(3),
+            Color = reader.GetString(4),
+            SortOrder = reader.GetInt32(5),
+            IsBuiltin = reader.GetBoolean(6)
+        } : null;
+    }
+
+    public async Task<FinanceSection> SaveFinanceSectionAsync(FinanceSection section)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        if (section.Id != 0)
+        {
+            var existing = await GetFinanceSectionAsync(section.Id);
+            if (existing is not null)
+            {
+                section.IsBuiltin = existing.IsBuiltin;
+                section.SectionKey = existing.SectionKey;
+            }
+        }
+
+        await using var command = connection.CreateCommand();
+        if (section.Id == 0)
+        {
+            command.CommandText = """
+                insert into dbo.planner_finance_sections (user_id, section_key, name, color, sort_order, is_builtin)
+                output inserted.id
+                values (@user_id, @section_key, @name, @color, @sort_order, @is_builtin);
+                """;
+        }
+        else
+        {
+            command.CommandText = """
+                update dbo.planner_finance_sections
+                set user_id = @user_id,
+                    section_key = @section_key,
+                    name = @name,
+                    color = @color,
+                    sort_order = @sort_order,
+                    is_builtin = @is_builtin
+                where id = @id;
+                select @id;
+                """;
+            command.Parameters.AddWithValue("@id", section.Id);
+        }
+
+        command.Parameters.AddWithValue("@user_id", section.UserId);
+        command.Parameters.AddWithValue("@section_key", section.SectionKey);
+        command.Parameters.AddWithValue("@name", section.Name);
+        command.Parameters.AddWithValue("@color", section.Color);
+        command.Parameters.AddWithValue("@sort_order", section.SortOrder);
+        command.Parameters.AddWithValue("@is_builtin", section.IsBuiltin);
+
+        section.Id = Convert.ToInt32(await command.ExecuteScalarAsync());
+        return section;
+    }
+
+    public async Task DeleteFinanceSectionAsync(int id)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = "delete from dbo.planner_finance_sections where id = @id and is_builtin = 0;";
+        command.Parameters.AddWithValue("@id", id);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task<IReadOnlyList<FinanceTemplateItem>> GetFinanceTemplatesAsync(int userId)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await EnsureDefaultFinanceTemplatesForUserAsync(connection, userId);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            select id, user_id, section_key, name, budget_amount, actual_amount, notes, is_shared, sort_order
+            from dbo.planner_finance_templates
+            where user_id = @user_id
+            order by sort_order asc, section_key asc, name asc, id asc;
+            """;
+        command.Parameters.AddWithValue("@user_id", userId);
+
+        var templates = new List<FinanceTemplateItem>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            templates.Add(new FinanceTemplateItem
+            {
+                Id = reader.GetInt32(0),
+                UserId = reader.GetInt32(1),
+                SectionKey = reader.GetString(2),
+                Name = reader.GetString(3),
+                BudgetAmount = GetDecimalOrZero(reader, 4),
+                ActualAmount = GetDecimalOrZero(reader, 5),
+                Notes = reader.GetString(6),
+                IsShared = reader.GetBoolean(7),
+                SortOrder = reader.GetInt32(8)
+            });
+        }
+
+        return templates;
+    }
+
+    public async Task<FinanceTemplateItem?> GetFinanceTemplateAsync(int id)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            select id, user_id, section_key, name, budget_amount, actual_amount, notes, is_shared, sort_order
+            from dbo.planner_finance_templates
+            where id = @id;
+            """;
+        command.Parameters.AddWithValue("@id", id);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        return await reader.ReadAsync() ? new FinanceTemplateItem
+        {
+            Id = reader.GetInt32(0),
+            UserId = reader.GetInt32(1),
+            SectionKey = reader.GetString(2),
+            Name = reader.GetString(3),
+            BudgetAmount = GetDecimalOrZero(reader, 4),
+            ActualAmount = GetDecimalOrZero(reader, 5),
+            Notes = reader.GetString(6),
+            IsShared = reader.GetBoolean(7),
+            SortOrder = reader.GetInt32(8)
+        } : null;
+    }
+
+    public async Task<FinanceTemplateItem> SaveFinanceTemplateAsync(FinanceTemplateItem template)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        if (template.Id == 0)
+        {
+            command.CommandText = """
+                insert into dbo.planner_finance_templates (user_id, section_key, name, budget_amount, actual_amount, notes, is_shared, sort_order)
+                output inserted.id
+                values (@user_id, @section_key, @name, @budget_amount, @actual_amount, @notes, @is_shared, @sort_order);
+                """;
+        }
+        else
+        {
+            command.CommandText = """
+                update dbo.planner_finance_templates
+                set user_id = @user_id,
+                    section_key = @section_key,
+                    name = @name,
+                    budget_amount = @budget_amount,
+                    actual_amount = @actual_amount,
+                    notes = @notes,
+                    is_shared = @is_shared,
+                    sort_order = @sort_order
+                where id = @id;
+                select @id;
+                """;
+            command.Parameters.AddWithValue("@id", template.Id);
+        }
+
+        command.Parameters.AddWithValue("@user_id", template.UserId);
+        command.Parameters.AddWithValue("@section_key", template.SectionKey);
+        command.Parameters.AddWithValue("@name", template.Name);
+        command.Parameters.AddWithValue("@budget_amount", template.BudgetAmount);
+        command.Parameters.AddWithValue("@actual_amount", template.ActualAmount);
+        command.Parameters.AddWithValue("@notes", template.Notes);
+        command.Parameters.AddWithValue("@is_shared", template.IsShared);
+        command.Parameters.AddWithValue("@sort_order", template.SortOrder);
+
+        template.Id = Convert.ToInt32(await command.ExecuteScalarAsync());
+        return template;
+    }
+
+    public async Task DeleteFinanceTemplateAsync(int id)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = "delete from dbo.planner_finance_templates where id = @id;";
+        command.Parameters.AddWithValue("@id", id);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task ReassignFinanceItemsAsync(int userId, string fromSectionKey, string toSectionKey)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            update dbo.planner_finance_items
+            set bucket = @to_section_key,
+                updated_at = @updated_at
+            where user_id = @user_id and bucket = @from_section_key;
+            """;
+        command.Parameters.AddWithValue("@user_id", userId);
+        command.Parameters.AddWithValue("@from_section_key", fromSectionKey);
+        command.Parameters.AddWithValue("@to_section_key", toSectionKey);
+        command.Parameters.AddWithValue("@updated_at", DateTimeOffset.UtcNow);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    public async Task<bool> HasFinanceImportAsync(int userId, DateOnly month, string source)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            select count(1)
+            from dbo.planner_finance_imports
+            where user_id = @user_id and month_key = @month_key and source = @source;
+            """;
+        command.Parameters.AddWithValue("@user_id", userId);
+        command.Parameters.AddWithValue("@month_key", GetMonthKey(month));
+        command.Parameters.AddWithValue("@source", source);
+
+        var result = await command.ExecuteScalarAsync();
+        return result is not null and not DBNull && Convert.ToInt32(result, CultureInfo.InvariantCulture) > 0;
+    }
+
+    public async Task RecordFinanceImportAsync(int userId, DateOnly month, string source)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            insert into dbo.planner_finance_imports (user_id, month_key, source, imported_at)
+            values (@user_id, @month_key, @source, @imported_at);
+            """;
+        command.Parameters.AddWithValue("@user_id", userId);
+        command.Parameters.AddWithValue("@month_key", GetMonthKey(month));
+        command.Parameters.AddWithValue("@source", source);
+        command.Parameters.AddWithValue("@imported_at", DateTimeOffset.UtcNow);
+        await command.ExecuteNonQueryAsync();
+    }
+
     private static PlannerEntry ReadEntry(SqlDataReader reader)
     {
         return new PlannerEntry
@@ -571,6 +1039,102 @@ public sealed class PlannerStore
             UpdatedAt = reader.GetDateTimeOffset(18)
         };
     }
+
+    private static FinanceItem ReadFinanceItem(SqlDataReader reader)
+    {
+        return new FinanceItem
+        {
+            Id = reader.GetInt32(0),
+            UserId = reader.GetInt32(1),
+            MonthKey = reader.GetString(2),
+            Bucket = reader.GetString(3),
+            Name = reader.GetString(4),
+            BudgetAmount = GetDecimalOrZero(reader, 5),
+            ActualAmount = GetDecimalOrZero(reader, 6),
+            DueDate = reader.IsDBNull(7) ? null : DateOnly.FromDateTime(reader.GetDateTime(7)),
+            Notes = reader.GetString(8),
+            IsShared = reader.GetBoolean(9),
+            SortOrder = reader.GetInt32(10),
+            CreatedAt = reader.GetDateTimeOffset(11),
+            UpdatedAt = reader.GetDateTimeOffset(12)
+        };
+    }
+
+    private static async Task EnsureDefaultFinanceSectionsForUserAsync(SqlConnection connection, int userId)
+    {
+        await using var countCommand = connection.CreateCommand();
+        countCommand.CommandText = """
+            select count(1)
+            from dbo.planner_finance_sections
+            where user_id = @user_id;
+            """;
+        countCommand.Parameters.AddWithValue("@user_id", userId);
+
+        var countResult = await countCommand.ExecuteScalarAsync();
+        var count = countResult is null or DBNull ? 0 : Convert.ToInt32(countResult, CultureInfo.InvariantCulture);
+        if (count > 0)
+        {
+            return;
+        }
+
+        await using var insert = connection.CreateCommand();
+        insert.CommandText = """
+            insert into dbo.planner_finance_sections (user_id, section_key, name, color, sort_order, is_builtin)
+            values
+                (@user_id, 'income', 'Income', '#3f7a46', 0, 1),
+                (@user_id, 'fixed', 'Fixed costs', '#c3252d', 1, 1),
+                (@user_id, 'flexible', 'Flexible spending', '#8f5c24', 2, 1),
+                (@user_id, 'savings', 'Savings', '#6f3db8', 3, 1),
+                (@user_id, 'cash', 'Cash buffer', '#d14b75', 4, 1);
+            """;
+        insert.Parameters.AddWithValue("@user_id", userId);
+        await insert.ExecuteNonQueryAsync();
+    }
+
+    private static async Task EnsureDefaultFinanceTemplatesForUserAsync(SqlConnection connection, int userId)
+    {
+        await using var countCommand = connection.CreateCommand();
+        countCommand.CommandText = """
+            select count(1)
+            from dbo.planner_finance_templates
+            where user_id = @user_id;
+            """;
+        countCommand.Parameters.AddWithValue("@user_id", userId);
+
+        var countResult = await countCommand.ExecuteScalarAsync();
+        var count = countResult is null or DBNull ? 0 : Convert.ToInt32(countResult, CultureInfo.InvariantCulture);
+        if (count > 0)
+        {
+            return;
+        }
+
+        await using var insert = connection.CreateCommand();
+        insert.CommandText = """
+            insert into dbo.planner_finance_templates (user_id, section_key, name, budget_amount, actual_amount, notes, is_shared, sort_order)
+            values
+                (@user_id, 'income', 'Income', 1786, 0, 'Monthly income from the sheet', 1, 0),
+                (@user_id, 'fixed', 'Rent', 400, 0, '', 1, 1),
+                (@user_id, 'fixed', 'Travel', 160, 0, '', 1, 2),
+                (@user_id, 'fixed', 'Lunch', 90, 0, '', 1, 3),
+                (@user_id, 'fixed', 'Loan', 211.98, 0, '', 1, 4),
+                (@user_id, 'fixed', 'Argos', 250, 0, '', 1, 5),
+                (@user_id, 'fixed', 'Credit N', 50, 0, '', 1, 6),
+                (@user_id, 'fixed', 'Credit M', 100, 0, '', 1, 7),
+                (@user_id, 'fixed', 'PlayStation Plus', 6.99, 0, '', 1, 8),
+                (@user_id, 'fixed', 'Monzo Max', 17, 0, '', 1, 9),
+                (@user_id, 'fixed', 'Humble Bundle', 11.49, 0, '', 1, 10),
+                (@user_id, 'flexible', 'Jo', 190, 0, '', 0, 11),
+                (@user_id, 'flexible', 'Luna (visit)', 60, 0, '', 0, 12),
+                (@user_id, 'flexible', 'Mum', 200, 0, '', 0, 13),
+                (@user_id, 'savings', 'Samsung watch', 558, 0, 'Savings goal', 0, 14),
+                (@user_id, 'savings', 'Samsung ring', 399, 0, 'Savings goal', 0, 15),
+                (@user_id, 'savings', 'Samsung tablet kit', 1386.01, 0, 'Savings goal', 0, 16);
+            """;
+        insert.Parameters.AddWithValue("@user_id", userId);
+        await insert.ExecuteNonQueryAsync();
+    }
+
+    private static string GetMonthKey(DateOnly month) => new DateOnly(month.Year, month.Month, 1).ToString("yyyy-MM-dd");
 
     private static void BindUser(SqlCommand command, PlannerUser user)
     {
@@ -665,6 +1229,11 @@ public sealed class PlannerStore
     private static int GetInt(SqlDataReader reader, int ordinal)
     {
         return reader.IsDBNull(ordinal) ? 0 : reader.GetInt32(ordinal);
+    }
+
+    private static decimal GetDecimalOrZero(SqlDataReader reader, int ordinal)
+    {
+        return reader.IsDBNull(ordinal) ? 0m : reader.GetDecimal(ordinal);
     }
 
     private static string GetConnectionString(IConfiguration configuration)

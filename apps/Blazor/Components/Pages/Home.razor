@@ -1,7 +1,6 @@
 @page "/"
 @implements IDisposable
 @inject PlannerApiClient Api
-@inject PlannerRepository Repository
 @inject PlannerState State
 
 <PageTitle>Relationship Planner</PageTitle>
@@ -127,7 +126,7 @@
         _entries = (await Api.GetEntriesAsync()).ToList();
         var currentUserId = GetCurrentUserId();
         _gameSummary = await Api.GetGameSummaryAsync(currentUserId);
-        _financeSummary = await Repository.GetFinanceSummaryAsync(currentUserId, new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1));
+        _financeSummary = await Api.GetFinanceSummaryAsync(currentUserId, new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1));
         _activeUser = _users.FirstOrDefault(x => x.Id == currentUserId) ?? _users.FirstOrDefault() ?? _activeUser;
 
         if (_settings.RelationshipStart is DateOnly start)

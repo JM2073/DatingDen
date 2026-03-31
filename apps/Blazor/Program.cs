@@ -15,7 +15,6 @@ builder.Services.AddHttpClient<PlannerApiClient>(client =>
     var baseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5283/";
     client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
 });
-builder.Services.AddScoped<PlannerRepository>();
 builder.Services.AddScoped<PlannerState>();
 builder.Services.AddScoped<UserSessionService>();
 builder.Services.AddHttpClient<GameIntegrationService>();
@@ -46,12 +45,6 @@ app.MapGet("/auth/steam/callback", async (HttpContext context, int? userId, Plan
 });
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-await using (var scope = app.Services.CreateAsyncScope())
-{
-    var repository = scope.ServiceProvider.GetRequiredService<PlannerRepository>();
-    await repository.InitializeAsync();
-}
 
 app.Run();
 

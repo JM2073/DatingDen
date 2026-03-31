@@ -68,3 +68,74 @@ public sealed class PlannerSummary
     public int FinishedGames { get; init; }
     public DateTimeOffset? LastUpdated { get; init; }
 }
+
+public sealed class FinanceItem
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string MonthKey { get; set; } = string.Empty;
+    public string Bucket { get; set; } = "income";
+    public string Name { get; set; } = string.Empty;
+    public decimal BudgetAmount { get; set; }
+    public decimal ActualAmount { get; set; }
+    public DateOnly? DueDate { get; set; }
+    public string Notes { get; set; } = string.Empty;
+    public bool IsShared { get; set; }
+    public int SortOrder { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+
+    public string? DueDateText
+    {
+        get => DueDate?.ToString("yyyy-MM-dd");
+        set
+        {
+            if (DateOnly.TryParse(value, out var parsed))
+            {
+                DueDate = parsed;
+            }
+            else
+            {
+                DueDate = null;
+            }
+        }
+    }
+}
+
+public sealed class FinanceSummary
+{
+    public int ItemCount { get; init; }
+    public decimal BudgetedIncome { get; init; }
+    public decimal ActualIncome { get; init; }
+    public decimal BudgetedOutflow { get; init; }
+    public decimal ActualOutflow { get; init; }
+    public decimal SavingsBudget { get; init; }
+    public decimal CashBudget { get; init; }
+    public decimal NetBudget => BudgetedIncome - BudgetedOutflow;
+    public decimal NetActual => ActualIncome - ActualOutflow;
+    public DateTimeOffset? LastUpdated { get; init; }
+}
+
+public sealed class FinanceSection
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string SectionKey { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Color { get; set; } = "#c3252d";
+    public int SortOrder { get; set; }
+    public bool IsBuiltin { get; set; }
+}
+
+public sealed class FinanceTemplateItem
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string SectionKey { get; set; } = "fixed";
+    public string Name { get; set; } = string.Empty;
+    public decimal BudgetAmount { get; set; }
+    public decimal ActualAmount { get; set; }
+    public string Notes { get; set; } = string.Empty;
+    public bool IsShared { get; set; }
+    public int SortOrder { get; set; }
+}

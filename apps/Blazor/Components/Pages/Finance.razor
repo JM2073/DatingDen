@@ -1,6 +1,6 @@
 @page "/finance"
 @implements IDisposable
-@inject PlannerRepository Repository
+@inject PlannerApiClient Api
 @inject PlannerState State
 
 @using System.Globalization
@@ -400,22 +400,22 @@
 
     private async Task LoadAsync()
     {
-        _users = (await Repository.GetUsersAsync()).ToList();
-        _settings = await Repository.GetSettingsAsync();
+        _users = (await Api.GetUsersAsync()).ToList();
+        _settings = await Api.GetSettingsAsync();
 
         var currentUserId = GetCurrentUserId();
         _activeUser = _users.FirstOrDefault(user => user.Id == currentUserId) ?? _users.FirstOrDefault() ?? _activeUser;
         _currentUserName = _activeUser.Name;
-        _sections = (await Repository.GetFinanceSectionsAsync(currentUserId)).ToList();
-        _templateItems = (await Repository.GetFinanceTemplatesAsync(currentUserId)).ToList();
+        _sections = (await Api.GetFinanceSectionsAsync(currentUserId)).ToList();
+        _templateItems = (await Api.GetFinanceTemplatesAsync(currentUserId)).ToList();
 
-        _items = (await Repository.GetFinanceItemsAsync(currentUserId, _selectedMonth)).ToList();
-        _summary = await Repository.GetFinanceSummaryAsync(currentUserId, _selectedMonth);
+        _items = (await Api.GetFinanceItemsAsync(currentUserId, _selectedMonth)).ToList();
+        _summary = await Api.GetFinanceSummaryAsync(currentUserId, _selectedMonth);
         _hasPreviousMonthItems = await HasPreviousMonthItemsAsync(currentUserId);
 
         await EnsureDefaultBudgetAsync(currentUserId);
-        _items = (await Repository.GetFinanceItemsAsync(currentUserId, _selectedMonth)).ToList();
-        _summary = await Repository.GetFinanceSummaryAsync(currentUserId, _selectedMonth);
+        _items = (await Api.GetFinanceItemsAsync(currentUserId, _selectedMonth)).ToList();
+        _summary = await Api.GetFinanceSummaryAsync(currentUserId, _selectedMonth);
         _hasPreviousMonthItems = await HasPreviousMonthItemsAsync(currentUserId);
 
         if (_draft.UserId == 0)
@@ -465,7 +465,7 @@
         }
 
         var currentUserId = GetCurrentUserId();
-        var saved = await Repository.SaveFinanceItemAsync(new FinanceItem
+        var saved = await Api.SaveFinanceItemAsync(new FinanceItem
         {
             Id = _draft.Id,
             UserId = _draft.UserId == 0 ? currentUserId : _draft.UserId,
@@ -487,7 +487,7 @@
 
     private async Task DeleteItemAsync(int id)
     {
-        await Repository.DeleteFinanceItemAsync(id);
+        await Api.DeleteFinanceItemAsync(id);
         _editingItemId = null;
         await LoadAsync();
     }
@@ -506,7 +506,7 @@
 
         item.Name = item.Name.Trim();
         item.Notes = item.Notes.Trim();
-        await Repository.SaveFinanceItemAsync(item);
+        await Api.SaveFinanceItemAsync(item);
         _editingItemId = null;
         await LoadAsync();
     }
@@ -539,7 +539,7 @@
             ? SlugifySectionKey(_sectionDraft.Name)
             : existing?.SectionKey ?? SlugifySectionKey(_sectionDraft.Name);
 
-        await Repository.SaveFinanceSectionAsync(new FinanceSection
+        await Api.SaveFinanceSectionAsync(new FinanceSection
         {
             Id = _sectionDraft.Id,
             UserId = currentUserId,
@@ -567,10 +567,10 @@
         var fallback = _sections.FirstOrDefault(x => x.SectionKey == "fixed") ?? _sections.FirstOrDefault();
         if (fallback is not null)
         {
-            await Repository.ReassignFinanceItemsAsync(GetCurrentUserId(), section.SectionKey, fallback.SectionKey);
+            await Api.ReassignFinanceItemsAsync(GetCurrentUserId(), section.SectionKey, fallback.SectionKey);
         }
 
-        await Repository.DeleteFinanceSectionAsync(id);
+        await Api.DeleteFinanceSectionAsync(id);
         ResetSectionDraft();
         await LoadAsync();
     }
@@ -649,7 +649,7 @@
             return;
         }
 
-        if (await Repository.HasFinanceImportAsync(currentUserId, _selectedMonth, "finance-template"))
+        if (await Api.HasFinanceImportAsync(currentUserId, _selectedMonth, "finance-template"))
         {
             return;
         }
@@ -660,7 +660,7 @@
     private async Task<bool> HasPreviousMonthItemsAsync(int userId)
     {
         var previousMonth = _selectedMonth.AddMonths(-1);
-        var previousItems = await Repository.GetFinanceItemsAsync(userId, previousMonth);
+        var previousItems = await Api.GetFinanceItemsAsync(userId, previousMonth);
         return previousItems.Count > 0;
     }
 
@@ -668,7 +668,7 @@
     {
         var currentUserId = GetCurrentUserId();
         var previousMonth = _selectedMonth.AddMonths(-1);
-        var previousItems = (await Repository.GetFinanceItemsAsync(currentUserId, previousMonth)).ToList();
+        var previousItems = (await Api.GetFinanceItemsAsync(currentUserId, previousMonth)).ToList();
         if (previousItems.Count == 0)
         {
             return;
@@ -685,7 +685,7 @@
                 continue;
             }
 
-            await Repository.SaveFinanceItemAsync(new FinanceItem
+            await Api.SaveFinanceItemAsync(new FinanceItem
             {
                 UserId = currentUserId,
                 MonthKey = GetMonthKey(_selectedMonth),
@@ -700,7 +700,7 @@
             });
         }
 
-        await Repository.RecordFinanceImportAsync(currentUserId, _selectedMonth, "carry-over");
+        await Api.RecordFinanceImportAsync(currentUserId, _selectedMonth, "carry-over");
         await LoadAsync();
     }
 
@@ -713,7 +713,7 @@
 
         var templates = _templateItems.Count > 0
             ? _templateItems
-            : (await Repository.GetFinanceTemplatesAsync(currentUserId)).ToList();
+            : (await Api.GetFinanceTemplatesAsync(currentUserId)).ToList();
 
         foreach (var row in templates)
         {
@@ -723,7 +723,7 @@
                 continue;
             }
 
-            await Repository.SaveFinanceItemAsync(new FinanceItem
+            await Api.SaveFinanceItemAsync(new FinanceItem
             {
                 UserId = currentUserId,
                 MonthKey = GetMonthKey(_selectedMonth),
@@ -737,9 +737,9 @@
             });
         }
 
-        if (force || !await Repository.HasFinanceImportAsync(currentUserId, _selectedMonth, "finance-template"))
+        if (force || !await Api.HasFinanceImportAsync(currentUserId, _selectedMonth, "finance-template"))
         {
-            await Repository.RecordFinanceImportAsync(currentUserId, _selectedMonth, "finance-template");
+            await Api.RecordFinanceImportAsync(currentUserId, _selectedMonth, "finance-template");
         }
     }
 
@@ -764,7 +764,7 @@
         }
 
         var currentUserId = GetCurrentUserId();
-        await Repository.SaveFinanceTemplateAsync(new FinanceTemplateItem
+        await Api.SaveFinanceTemplateAsync(new FinanceTemplateItem
         {
             Id = _templateDraft.Id,
             UserId = currentUserId,
@@ -783,7 +783,7 @@
 
     private async Task DeleteTemplateAsync(int id)
     {
-        await Repository.DeleteFinanceTemplateAsync(id);
+        await Api.DeleteFinanceTemplateAsync(id);
         if (_templateDraft.Id == id)
         {
             ResetTemplateDraft();
@@ -931,4 +931,5 @@
         public int SortOrder { get; set; }
     }
 }
+
 

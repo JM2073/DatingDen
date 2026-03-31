@@ -1,6 +1,6 @@
 @inherits LayoutComponentBase
 @implements IDisposable
-@inject PlannerRepository Repository
+@inject PlannerApiClient Api
 @inject PlannerState State
 @inject UserSessionService Session
 @inject NavigationManager Navigation
@@ -134,8 +134,8 @@
     protected override async Task OnInitializedAsync()
     {
         State.Changed += OnPlannerStateChanged;
-        _settings = await Repository.GetSettingsAsync();
-        _users = (await Repository.GetUsersAsync()).ToList();
+        _settings = await Api.GetSettingsAsync();
+        _users = (await Api.GetUsersAsync()).ToList();
         _themeMode = NormalizeTheme(_settings.Theme);
         _visualTheme = NormalizeVisualTheme(_settings.VisualTheme);
         _theme = CreateTheme(_settings, _isDarkMode);
@@ -184,7 +184,7 @@
     {
         _settings.Theme = _themeMode;
         _theme = CreateTheme(_settings, _isDarkMode);
-        await Repository.SaveSettingsAsync(_settings);
+        await Api.SaveSettingsAsync(_settings);
         State.ThemeMode = _themeMode;
         State.NotifyChanged();
         await InvokeAsync(StateHasChanged);
@@ -317,8 +317,8 @@
 
     private async Task RefreshShellAsync()
     {
-        _settings = await Repository.GetSettingsAsync();
-        _users = (await Repository.GetUsersAsync()).ToList();
+        _settings = await Api.GetSettingsAsync();
+        _users = (await Api.GetUsersAsync()).ToList();
         _visualTheme = NormalizeVisualTheme(_settings.VisualTheme);
         _theme = CreateTheme(_settings, _isDarkMode);
         await SyncThemeFromStateAsync();
