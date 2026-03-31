@@ -223,6 +223,35 @@ public sealed class PlannerStore
         return users;
     }
 
+    public async Task<PlannerUser?> GetUserAsync(int id)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            select id, name, accent_color, steam_id64, is_default
+            from dbo.planner_users
+            where id = @id;
+            """;
+        command.Parameters.AddWithValue("@id", id);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+        {
+            return null;
+        }
+
+        return new PlannerUser
+        {
+            Id = reader.GetInt32(0),
+            Name = reader.GetString(1),
+            AccentColor = reader.GetString(2),
+            SteamId64 = reader.IsDBNull(3) ? null : reader.GetString(3),
+            IsDefault = reader.GetBoolean(4)
+        };
+    }
+
     public async Task<PlannerUser> SaveUserAsync(PlannerUser user)
     {
         await using var connection = new SqlConnection(_connectionString);
@@ -262,6 +291,32 @@ public sealed class PlannerStore
         BindUser(update, user);
         await update.ExecuteNonQueryAsync();
         return user;
+    }
+
+    public async Task DeleteUserAsync(int id)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var userCount = await CountAsync(connection, "dbo.planner_users");
+        if (userCount <= 1)
+        {
+            return;
+        }
+
+        await using (var deleteCommand = connection.CreateCommand())
+        {
+            deleteCommand.CommandText = "delete from dbo.planner_users where id = @id;";
+            deleteCommand.Parameters.AddWithValue("@id", id);
+            await deleteCommand.ExecuteNonQueryAsync();
+        }
+
+        var settings = await GetSettingsAsync();
+        if (settings.ActiveUserId == id)
+        {
+            settings.ActiveUserId = await GetDefaultUserIdAsync(connection) ?? 1;
+            await SaveSettingsAsync(settings);
+        }
     }
 
     public async Task<PlannerSettings> GetSettingsAsync()
@@ -592,6 +647,19 @@ public sealed class PlannerStore
 
         var result = await command.ExecuteScalarAsync();
         return result is null or DBNull ? 0 : Convert.ToInt32(result, CultureInfo.InvariantCulture);
+    }
+
+    private static async Task<int?> GetDefaultUserIdAsync(SqlConnection connection)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            select top (1) id
+            from dbo.planner_users
+            order by is_default desc, name asc;
+            """;
+
+        var result = await command.ExecuteScalarAsync();
+        return result is null or DBNull ? null : Convert.ToInt32(result, CultureInfo.InvariantCulture);
     }
 
     private static int GetInt(SqlDataReader reader, int ordinal)

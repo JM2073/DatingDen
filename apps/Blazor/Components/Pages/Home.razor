@@ -1,5 +1,6 @@
 @page "/"
 @implements IDisposable
+@inject PlannerApiClient Api
 @inject PlannerRepository Repository
 @inject PlannerState State
 
@@ -24,12 +25,12 @@
 
     <div class="home-top-row">
         <div class="metric-grid">
-            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudPaper Elevation="1" Class="metric-card pa-4">
                 <MudText Typo="Typo.overline" Color="Color.Secondary">Entries</MudText>
                 <MudText Typo="Typo.h4">@_summary.TotalEntries</MudText>
                 <MudText Typo="Typo.body2">Everything saved in the shared planner.</MudText>
             </MudPaper>
-            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudPaper Elevation="1" Class="metric-card pa-4">
                 <MudText Typo="Typo.overline" Color="Color.Secondary">Time together</MudText>
                 <MudText Typo="Typo.h4">@_timeTogether</MudText>
                 <MudText Typo="Typo.body2">@_relationshipLine</MudText>
@@ -120,12 +121,12 @@
 
     private async Task LoadAsync()
     {
-        _summary = await Repository.GetSummaryAsync();
-        _settings = await Repository.GetSettingsAsync();
-        _users = (await Repository.GetUsersAsync()).ToList();
-        _entries = (await Repository.GetEntriesAsync()).ToList();
+        _summary = await Api.GetSummaryAsync();
+        _settings = await Api.GetSettingsAsync();
+        _users = (await Api.GetUsersAsync()).ToList();
+        _entries = (await Api.GetEntriesAsync()).ToList();
         var currentUserId = GetCurrentUserId();
-        _gameSummary = await Repository.GetGameSummaryAsync(currentUserId);
+        _gameSummary = await Api.GetGameSummaryAsync(currentUserId);
         _financeSummary = await Repository.GetFinanceSummaryAsync(currentUserId, new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1));
         _activeUser = _users.FirstOrDefault(x => x.Id == currentUserId) ?? _users.FirstOrDefault() ?? _activeUser;
 

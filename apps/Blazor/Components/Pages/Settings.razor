@@ -1,6 +1,6 @@
 @page "/settings"
 @implements IDisposable
-@inject PlannerRepository Repository
+@inject PlannerApiClient Api
 @inject PlannerState State
 @inject NavigationManager Navigation
 @inject UserSessionService Session
@@ -200,8 +200,8 @@
 
     private async Task LoadAsync()
     {
-        _users = (await Repository.GetUsersAsync()).ToList();
-        var settings = await Repository.GetSettingsAsync();
+        _users = (await Api.GetUsersAsync()).ToList();
+        var settings = await Api.GetSettingsAsync();
         _settings.Apply(settings);
         _hasCurrentUser = State.SelectedUserId.HasValue && _users.Any(user => user.Id == State.SelectedUserId.Value);
         _settings.Theme = State.ThemeMode == "system" ? settings.Theme : State.ThemeMode;
@@ -212,7 +212,7 @@
 
     private async Task SaveSettingsAsync()
     {
-        await Repository.SaveSettingsAsync(new PlannerSettings
+        await Api.SaveSettingsAsync(new PlannerSettings
         {
             CoupleName = _settings.CoupleName.Trim(),
             RelationshipStart = _settings.RelationshipStart,
@@ -262,7 +262,7 @@
             return;
         }
 
-        var saved = await Repository.SaveUserAsync(new PlannerUser
+        var saved = await Api.SaveUserAsync(new PlannerUser
         {
             Id = _draft.Id,
             Name = _draft.Name.Trim(),
@@ -347,7 +347,7 @@
     private async Task DeleteUserAsync(int id)
     {
         var removingCurrentUser = State.SelectedUserId == id;
-        await Repository.DeleteUserAsync(id);
+        await Api.DeleteUserAsync(id);
         if (removingCurrentUser)
         {
             State.SelectedUserId = null;

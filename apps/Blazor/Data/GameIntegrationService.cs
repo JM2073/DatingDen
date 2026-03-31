@@ -8,17 +8,17 @@ public sealed class GameIntegrationService
 {
     private static readonly Regex SteamAppIdRegex = new(@"(?:store\.steampowered\.com|steamcommunity\.com).*/app/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private readonly HttpClient _httpClient;
-    private readonly PlannerRepository _repository;
+    private readonly PlannerApiClient _apiClient;
 
-    public GameIntegrationService(HttpClient httpClient, PlannerRepository repository)
+    public GameIntegrationService(HttpClient httpClient, PlannerApiClient apiClient)
     {
         _httpClient = httpClient;
-        _repository = repository;
+        _apiClient = apiClient;
     }
 
     public async Task<IReadOnlyList<GameSearchResult>> SearchRawgGamesAsync(string query, CancellationToken cancellationToken = default)
     {
-        var apiKey = (await _repository.GetSettingsAsync()).RawgApiKey;
+        var apiKey = (await _apiClient.GetSettingsAsync(cancellationToken)).RawgApiKey;
         if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(query))
         {
             return Array.Empty<GameSearchResult>();
@@ -41,7 +41,7 @@ public sealed class GameIntegrationService
 
     public async Task<GameSearchResult?> GetRawgGameAsync(int rawgId, CancellationToken cancellationToken = default)
     {
-        var apiKey = (await _repository.GetSettingsAsync()).RawgApiKey;
+        var apiKey = (await _apiClient.GetSettingsAsync(cancellationToken)).RawgApiKey;
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             return null;
@@ -91,7 +91,7 @@ public sealed class GameIntegrationService
 
     public async Task<SteamOwnedGamesResult> GetOwnedSteamGamesAsync(string steamId64, CancellationToken cancellationToken = default)
     {
-        var apiKey = (await _repository.GetSettingsAsync()).SteamWebApiKey;
+        var apiKey = (await _apiClient.GetSettingsAsync(cancellationToken)).SteamWebApiKey;
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             return new SteamOwnedGamesResult

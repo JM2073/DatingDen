@@ -1,6 +1,6 @@
 @page "/games"
 @implements IDisposable
-@inject PlannerRepository Repository
+@inject PlannerApiClient Api
 @inject PlannerState State
 @inject GameIntegrationService GameCatalog
 
@@ -418,8 +418,8 @@
 
     private async Task LoadAsync()
     {
-        _users = (await Repository.GetUsersAsync()).ToList();
-        var settings = await Repository.GetSettingsAsync();
+        _users = (await Api.GetUsersAsync()).ToList();
+        var settings = await Api.GetSettingsAsync();
         _settings = settings;
         var currentUserId = GetCurrentUserId(settings);
         _currentUserId = currentUserId;
@@ -427,8 +427,8 @@
         _activeUserSteamId = _activeUser.SteamId64 ?? string.Empty;
         _hasRawgKey = !string.IsNullOrWhiteSpace(settings.RawgApiKey);
         _hasSteamKey = !string.IsNullOrWhiteSpace(settings.SteamWebApiKey);
-        _games = (await Repository.GetGameEntriesAsync(currentUserId)).ToList();
-        _summary = await Repository.GetGameSummaryAsync(currentUserId);
+        _games = (await Api.GetGameEntriesAsync(currentUserId)).ToList();
+        _summary = await Api.GetGameSummaryAsync(currentUserId);
         if (_draft.UserId == 0)
         {
             _draft.UserId = currentUserId;
@@ -453,7 +453,7 @@
             return;
         }
 
-        await Repository.SaveEntryAsync(new PlannerEntry
+        await Api.SaveEntryAsync(new PlannerEntry
         {
             Title = _draft.GameTitle.Trim(),
             GameTitle = _draft.GameTitle.Trim(),
@@ -475,7 +475,7 @@
     private async Task UpdateStatusAsync(PlannerEntry game, string value)
     {
         game.GameStatus = value;
-        await Repository.SaveEntryAsync(game);
+        await Api.SaveEntryAsync(game);
         await LoadAsync();
     }
 
@@ -581,13 +581,13 @@
     {
         game.Kind = "game_plan";
         game.TargetDate ??= DateOnly.FromDateTime(DateTime.Today);
-        await Repository.SaveEntryAsync(game);
+        await Api.SaveEntryAsync(game);
         await LoadAsync();
     }
 
     private async Task QuickAddSteamGameAsync(SteamOwnedGameSummary game)
     {
-        await Repository.SaveEntryAsync(new PlannerEntry
+        await Api.SaveEntryAsync(new PlannerEntry
         {
             Title = game.Name,
             GameTitle = game.Name,
@@ -634,7 +634,7 @@
 
                     if (shouldSave)
                     {
-                        await Repository.SaveEntryAsync(game);
+        await Api.SaveEntryAsync(game);
                     }
                 }
                 catch
@@ -643,8 +643,8 @@
                 }
             }
 
-            _games = (await Repository.GetGameEntriesAsync(_currentUserId)).ToList();
-            _summary = await Repository.GetGameSummaryAsync(_currentUserId);
+        _games = (await Api.GetGameEntriesAsync(_currentUserId)).ToList();
+        _summary = await Api.GetGameSummaryAsync(_currentUserId);
             if (!string.IsNullOrWhiteSpace(ownedResult.Message))
             {
                 _searchMessageSeverity = ownedResult.AppIds.Count > 0 ? Severity.Success : Severity.Info;
@@ -667,7 +667,7 @@
 
     private async Task DeleteAsync(int id)
     {
-        await Repository.DeleteEntryAsync(id);
+        await Api.DeleteEntryAsync(id);
         await LoadAsync();
     }
 

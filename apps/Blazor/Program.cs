@@ -10,6 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddMudServices();
+builder.Services.AddHttpClient<PlannerApiClient>(client =>
+{
+    var baseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5283/";
+    client.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
+});
 builder.Services.AddScoped<PlannerRepository>();
 builder.Services.AddScoped<PlannerState>();
 builder.Services.AddScoped<UserSessionService>();
@@ -31,13 +36,13 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
-app.MapGet("/auth/steam/start", (HttpContext context, int? userId, PlannerRepository repository, SteamOpenIdService steamOpenId) =>
+app.MapGet("/auth/steam/start", (HttpContext context, int? userId, PlannerApiClient apiClient, SteamOpenIdService steamOpenId) =>
 {
-    return StartSteamLogin(context, userId, repository, steamOpenId);
+    return StartSteamLogin(context, userId, apiClient, steamOpenId);
 });
-app.MapGet("/auth/steam/callback", async (HttpContext context, int? userId, PlannerRepository repository, SteamOpenIdService steamOpenId) =>
+app.MapGet("/auth/steam/callback", async (HttpContext context, int? userId, PlannerApiClient apiClient, SteamOpenIdService steamOpenId) =>
 {
-    return await CompleteSteamLogin(context, userId, repository, steamOpenId);
+    return await CompleteSteamLogin(context, userId, apiClient, steamOpenId);
 });
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
@@ -50,9 +55,9 @@ await using (var scope = app.Services.CreateAsyncScope())
 
 app.Run();
 
-static async Task<IResult> StartSteamLogin(HttpContext context, int? userId, PlannerRepository repository, SteamOpenIdService steamOpenId)
+static async Task<IResult> StartSteamLogin(HttpContext context, int? userId, PlannerApiClient apiClient, SteamOpenIdService steamOpenId)
 {
-    var settings = await repository.GetSettingsAsync();
+    var settings = await apiClient.GetSettingsAsync();
     var targetUserId = userId ?? settings.ActiveUserId;
     if (targetUserId <= 0)
     {
@@ -69,9 +74,9 @@ static async Task<IResult> StartSteamLogin(HttpContext context, int? userId, Pla
     return Results.Redirect(loginUrl);
 }
 
-static async Task<IResult> CompleteSteamLogin(HttpContext context, int? userId, PlannerRepository repository, SteamOpenIdService steamOpenId)
+static async Task<IResult> CompleteSteamLogin(HttpContext context, int? userId, PlannerApiClient apiClient, SteamOpenIdService steamOpenId)
 {
-    var settings = await repository.GetSettingsAsync();
+    var settings = await apiClient.GetSettingsAsync();
     var targetUserId = userId ?? settings.ActiveUserId;
     if (targetUserId <= 0)
     {
@@ -93,7 +98,7 @@ static async Task<IResult> CompleteSteamLogin(HttpContext context, int? userId, 
         }));
     }
 
-    var users = await repository.GetUsersAsync();
+    var users = await apiClient.GetUsersAsync();
     var duplicate = users.FirstOrDefault(user =>
         user.Id != targetUserId &&
         !string.IsNullOrWhiteSpace(user.SteamId64) &&
@@ -108,7 +113,7 @@ static async Task<IResult> CompleteSteamLogin(HttpContext context, int? userId, 
         }));
     }
 
-    var user = await repository.GetUserAsync(targetUserId);
+    var user = await apiClient.GetUserAsync(targetUserId);
     if (user is null)
     {
         return Results.Redirect(QueryHelpers.AddQueryString("/settings", new Dictionary<string, string?>
@@ -119,7 +124,7 @@ static async Task<IResult> CompleteSteamLogin(HttpContext context, int? userId, 
     }
 
     user.SteamId64 = result.SteamId64;
-    await repository.SaveUserAsync(user);
+    await apiClient.SaveUserAsync(user);
 
     return Results.Redirect(QueryHelpers.AddQueryString("/settings", new Dictionary<string, string?>
     {

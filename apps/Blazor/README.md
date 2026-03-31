@@ -6,7 +6,7 @@ This is the Blazor/MudBlazor version of the relationship planner.
 
 - A working Blazor Web App
 - MudBlazor integrated for the UI
-- SQLite-backed shared planner data
+- API-backed shared planner data
 - Separate from the Node/SQLite app
 
 ## Run it
@@ -36,7 +36,8 @@ dotnet watch
 - Dark mode with saved preference and system follow mode
 - RAWG game search with optional Steam ownership checks
 - A browsable Steam library table for the active user, when Steam is linked
-- SQLite persistence in `App_Data/planner.db`
+- Shared planner data through the backend API
+- Finance persistence still lives in the local Blazor app repository for now
 
 ## Run it
 

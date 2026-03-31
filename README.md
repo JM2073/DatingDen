@@ -3,7 +3,7 @@
 This repo now holds five related projects:
 
 - [`node-app/`](C:\Users\Reavus\Documents\New%20project\node-app) - the original Node/SQLite app
-- [`apps/Blazor/`](C:\Users\Reavus\Documents\New%20project\apps\Blazor) - the Blazor web app
+- [`apps/Blazor/`](C:\Users\Reavus\Documents\New%20project\apps\Blazor) - the Blazor web app that talks to the shared API
 - [`apps/Backend/`](C:\Users\Reavus\Documents\New%20project\apps\Backend) - the ASP.NET Core API and shared SQL Server backend
 - [`apps/Android/`](C:\Users\Reavus\Documents\New%20project\apps\Android) - the native .NET for Android client
 - [`tests/RelationshipPlanner.Tests/`](C:\Users\Reavus\Documents\New%20project\tests\RelationshipPlanner.Tests) - NUnit tests for the backend API

@@ -1,8 +1,7 @@
 @page "/planner"
 @implements IDisposable
-@inject PlannerRepository Repository
+@inject PlannerApiClient Api
 @inject PlannerState State
-@inject PlannerRepository Repository
 
 <PageTitle>Planner</PageTitle>
 
@@ -182,9 +181,9 @@
 
     private async Task LoadAsync()
     {
-        _users = (await Repository.GetUsersAsync()).ToList();
-        _settings = await Repository.GetSettingsAsync();
-        _entries = (await Repository.GetEntriesAsync()).ToList();
+        _users = (await Api.GetUsersAsync()).ToList();
+        _settings = await Api.GetSettingsAsync();
+        _entries = (await Api.GetEntriesAsync()).ToList();
         _entriesByDate = _entries
             .Where(x => x.TargetDate.HasValue)
             .GroupBy(x => x.TargetDate!.Value)
@@ -261,7 +260,7 @@
             return;
         }
 
-        await Repository.SaveEntryAsync(new PlannerEntry
+        await Api.SaveEntryAsync(new PlannerEntry
         {
             Id = _editing.Id,
             Title = _editing.Title.Trim(),
@@ -281,7 +280,7 @@
 
     private async Task DeleteEntry(int id)
     {
-        await Repository.DeleteEntryAsync(id);
+        await Api.DeleteEntryAsync(id);
         _messageSeverity = Severity.Info;
         _message = "Entry removed.";
         await LoadAsync();
