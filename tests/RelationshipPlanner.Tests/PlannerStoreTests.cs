@@ -16,7 +16,7 @@ public sealed class PlannerStoreTests
 
         var builder = new SqlConnectionStringBuilder
         {
-            DataSource = @"(localdb)\MSSQLLocalDB",
+            DataSource = @"(localdb)\RPDB",
             InitialCatalog = _databaseName,
             IntegratedSecurity = true,
             TrustServerCertificate = true,
@@ -34,6 +34,58 @@ public sealed class PlannerStoreTests
     public async Task TearDown()
     {
         await DropDatabaseAsync();
+    }
+
+    [Test]
+    public async Task InitializeAsync_CreatesDatabaseInSqlServer()
+    {
+        var store = CreateStore();
+
+        await store.InitializeAsync();
+
+        await using var connection = new SqlConnection(_masterConnectionString);
+        await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = "select db_id(@database_name);";
+        command.Parameters.AddWithValue("@database_name", _databaseName);
+
+        var result = await command.ExecuteScalarAsync();
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(Convert.ToInt32(result), Is.GreaterThan(0));
+    }
+
+    [Test]
+    public async Task InitializeAsync_CreatesDefaultTables()
+    {
+        var store = CreateStore();
+
+        await store.InitializeAsync();
+
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        foreach (var tableName in new[]
+        {
+            "planner_users",
+            "planner_settings",
+            "planner_entries",
+            "planner_finance_items",
+            "planner_finance_sections",
+            "planner_finance_imports",
+            "planner_finance_templates"
+        })
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "select object_id(@object_name, 'U');";
+            command.Parameters.AddWithValue("@object_name", $"dbo.{tableName}");
+
+            var result = await command.ExecuteScalarAsync();
+
+            Assert.That(result, Is.Not.Null, $"{tableName} should exist.");
+            Assert.That(Convert.ToInt32(result), Is.GreaterThan(0), $"{tableName} should exist.");
+        }
     }
 
     [Test]
