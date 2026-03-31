@@ -1,7 +1,5 @@
-data/
 node_modules/
 .vs/
-public/rawg-cache/
 .env
 .DS_Store
 *.log
@@ -11,3 +9,9 @@ mudblazor-rebuild/obj/
 mudblazor-rebuild/App_Data/
 RelationshipPlanner.Mobile/bin/
 RelationshipPlanner.Mobile/obj/
+node-app/.env
+node-app/data/
+node-app/node_modules/
+node-app/public/rawg-cache/
+node-app/server.err.log
+node-app/server.out.log
