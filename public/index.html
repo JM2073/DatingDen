@@ -19,6 +19,13 @@
             </p>
           </div>
           <div class="hero-actions">
+            <label class="user-switcher" for="active-user">
+              <span>Active user</span>
+              <div class="user-switcher-row">
+                <span id="active-user-swatch" class="user-swatch" aria-hidden="true"></span>
+                <select id="active-user" name="active-user"></select>
+              </div>
+            </label>
             <button id="theme-toggle" class="secondary theme-toggle" type="button" aria-pressed="false">
               Dark mode
             </button>
@@ -32,6 +39,10 @@
           <div class="stat">
             <span id="next-countdown">--</span>
             <label>Next countdown</label>
+          </div>
+          <div class="stat">
+            <span id="relationship-count-hero">--</span>
+            <label>Time together</label>
           </div>
         </div>
       </section>
@@ -54,7 +65,7 @@
           <div>
             <p class="tag">Relationship timer</p>
             <h3 id="relationship-summary">Set your start date</h3>
-            <p id="relationship-details" class="game-meta">This helps the app show how long you’ve been together.</p>
+            <p id="relationship-details" class="game-meta">This helps the app show how long you&apos;ve been together.</p>
           </div>
           <div class="settings-summary-stat">
             <span id="relationship-count">--</span>
@@ -71,181 +82,203 @@
             <label for="relationshipStartedAt">Relationship started</label>
             <input id="relationshipStartedAt" name="relationshipStartedAt" type="datetime-local" />
           </div>
-          <div class="field">
-            <label for="defaultReminderMinutes">Default reminder lead time (minutes)</label>
-            <input id="defaultReminderMinutes" name="defaultReminderMinutes" type="number" min="0" max="1440" step="5" value="60" />
-          </div>
-          <div class="field">
-            <label for="preferredTheme">Preferred theme</label>
-            <select id="preferredTheme" name="preferredTheme">
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </div>
           <div class="actions">
             <button type="submit">Save settings</button>
             <button id="settings-reset" type="button" class="secondary">Reset</button>
           </div>
           <p id="settings-status" class="status" aria-live="polite"></p>
         </form>
+        <section class="card users-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow compact">Users</p>
+              <h2 class="calendar-title">Profiles and customization</h2>
+            </div>
+            <p class="status compact">Each profile keeps its own color, theme, and reminder defaults.</p>
+          </div>
+
+          <div id="user-roster" class="user-roster" aria-label="Saved users"></div>
+
+          <form id="user-form" class="settings-form user-form">
+            <div class="field">
+              <label for="userName">Display name</label>
+              <input id="userName" name="userName" type="text" placeholder="You" required />
+            </div>
+            <div class="field">
+              <label for="userColor">Accent color</label>
+              <input id="userColor" name="userColor" type="color" value="#1976d2" />
+            </div>
+            <div class="field">
+              <label for="userTheme">Preferred theme</label>
+              <select id="userTheme" name="userTheme">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="userReminderMinutes">Default reminder lead time (minutes)</label>
+              <input id="userReminderMinutes" name="userReminderMinutes" type="number" min="0" max="1440" step="5" value="60" />
+            </div>
+            <div class="actions">
+              <button type="submit">Save user</button>
+              <button id="user-reset" type="button" class="secondary">New user</button>
+            </div>
+            <p id="user-status" class="status" aria-live="polite"></p>
+          </form>
+        </section>
       </section>
 
       <div id="planner-view">
-      <section class="card calendar-panel">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow compact">Calendar</p>
-            <h2 class="calendar-title" id="calendar-title">Month</h2>
+        <section class="card calendar-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow compact">Calendar</p>
+              <h2 class="calendar-title" id="calendar-title">Month</h2>
+            </div>
+            <div class="calendar-controls">
+              <button id="calendar-prev" class="secondary" type="button">Prev</button>
+              <button id="calendar-today" class="secondary" type="button">Today</button>
+              <button id="calendar-next" class="secondary" type="button">Next</button>
+            </div>
           </div>
-          <div class="calendar-controls">
-            <button id="calendar-prev" class="secondary" type="button">Prev</button>
-            <button id="calendar-today" class="secondary" type="button">Today</button>
-            <button id="calendar-next" class="secondary" type="button">Next</button>
+          <div class="calendar-weekdays" aria-hidden="true">
+            <span>Sun</span>
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
           </div>
-        </div>
-        <div class="calendar-weekdays" aria-hidden="true">
-          <span>Sun</span>
-          <span>Mon</span>
-          <span>Tue</span>
-          <span>Wed</span>
-          <span>Thu</span>
-          <span>Fri</span>
-          <span>Sat</span>
-        </div>
-        <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Monthly calendar"></div>
-        <div class="calendar-footer">
-          <div>
-            <p class="calendar-date" id="calendar-selected-date">Selected day</p>
-            <p class="status compact" id="calendar-summary">Choose a date to see entries.</p>
+          <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Monthly calendar"></div>
+          <div class="calendar-footer">
+            <button id="use-selected-date" class="secondary" type="button">Use selected date</button>
           </div>
-          <button id="use-selected-date" class="secondary" type="button">Use selected date</button>
-        </div>
-        <div id="calendar-agenda" class="calendar-agenda"></div>
-      </section>
-
-      <section class="card game-panel">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow compact">Games</p>
-            <h2 class="calendar-title">Search RAWG and plan a session</h2>
-          </div>
-          <a class="rawg-link" href="https://rawg.io/apidocs" target="_blank" rel="noreferrer">Powered by RAWG</a>
-        </div>
-        <p class="status compact">Set `RAWG_API_KEY` on the server to enable search.</p>
-
-        <div class="game-search-bar">
-          <input id="game-query" type="search" placeholder="Search a game, like Hades or Stardew Valley" />
-          <button id="game-search-btn" type="button">Search</button>
-        </div>
-        <p id="game-search-status" class="status compact" aria-live="polite">Search for a game to start a plan.</p>
-
-        <div class="game-layout">
-          <div class="game-results-wrap">
-            <div class="game-status-window card">
+          <div class="selected-day-panel">
+            <div class="panel-head selected-day-head">
+              <div>
+                <p class="eyebrow compact">Selected day</p>
+                <h3 id="calendar-selected-date">Selected day</h3>
+              </div>
+              <p class="status compact" id="calendar-summary">Choose a date to see entries.</p>
+            </div>
+            <div id="calendar-agenda" class="calendar-agenda"></div>
+            <section class="day-memo-panel">
               <div class="panel-head">
                 <div>
-                  <p class="eyebrow compact">Game library</p>
-                  <h3>Game status window</h3>
+                  <p class="eyebrow compact">Memo</p>
+                  <h3>Leave a note for this day</h3>
                 </div>
-                <p class="status compact">Saved game plans by status.</p>
+                <button id="open-memo-dialog" class="secondary" type="button">Add memo</button>
               </div>
-              <div class="game-status-grid" id="game-status-grid">
-                <div class="game-status-card" data-game-status="want_to_play">
-                  <img class="game-status-banner" data-game-status-banner="want_to_play" alt="" />
-                  <span id="games-want-to-play">0</span>
-                  <label>Want to play</label>
-                </div>
-                <div class="game-status-card" data-game-status="playing">
-                  <img class="game-status-banner" data-game-status-banner="playing" alt="" />
-                  <span id="games-playing">0</span>
-                  <label>Playing</label>
-                </div>
-                <div class="game-status-card" data-game-status="played">
-                  <img class="game-status-banner" data-game-status-banner="played" alt="" />
-                  <span id="games-played">0</span>
-                  <label>Played</label>
-                </div>
-                <div class="game-status-card" data-game-status="finished">
-                  <img class="game-status-banner" data-game-status-banner="finished" alt="" />
-                  <span id="games-finished">0</span>
-                  <label>Finished</label>
-                </div>
-              </div>
-            </div>
-            <div id="game-results" class="game-results"></div>
+              <p class="status compact" id="memo-selected-date">Add a memo to the selected day.</p>
+            </section>
           </div>
-          <aside class="game-selected card">
-            <div class="selected-cover-wrap">
-              <img id="game-selected-cover" alt="" />
-            </div>
-            <div class="selected-copy">
-              <p class="tag">Selected game</p>
-              <h3 id="game-selected-title">Nothing selected yet</h3>
-              <p id="game-selected-meta" class="game-meta">Search and pick a game to prefill the planner.</p>
-              <p id="game-selected-summary" class="details"></p>
-            </div>
-            <div class="entry-actions">
-              <button id="use-game-btn" class="secondary" type="button" disabled>Use in planner</button>
-              <button id="clear-game-btn" class="secondary" type="button">Clear</button>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <section class="grid">
-        <form id="entry-form" class="card form">
-          <h2>Add something special</h2>
-          <div class="field">
-            <label for="kind">Type</label>
-            <select id="kind" name="kind">
-              <option value="date">Date idea</option>
-              <option value="reminder">Reminder</option>
-              <option value="countdown">Countdown</option>
-              <option value="memory">Memory</option>
-              <option value="got_together">Got together</option>
-              <option value="game_plan">Game plan</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="title">Title</label>
-            <input id="title" name="title" type="text" placeholder="Dinner on Friday" required />
-          </div>
-          <div class="field">
-            <label for="details">Details</label>
-            <textarea id="details" name="details" rows="4" placeholder="Location, notes, what to bring..."></textarea>
-          </div>
-          <div class="field">
-            <label for="eventDate">Planned date</label>
-            <input id="eventDate" name="eventDate" type="datetime-local" required />
-          </div>
-          <div class="field">
-            <label for="reminderAt">Reminder</label>
-            <input id="reminderAt" name="reminderAt" type="datetime-local" />
-          </div>
-          <div class="field game-plan-only" hidden>
-            <label for="gameStatus">Game status</label>
-            <select id="gameStatus" name="gameStatus">
-              <option value="want_to_play">Want to play</option>
-              <option value="playing">Playing</option>
-              <option value="played">Played</option>
-              <option value="finished">Finished</option>
-            </select>
-          </div>
-          <div class="actions">
-            <button type="submit">Save</button>
-            <button type="button" id="reset-form" class="secondary">Clear</button>
-          </div>
-          <p id="form-status" class="status" aria-live="polite"></p>
-        </form>
-
-        <section class="card list-panel">
-          <div class="panel-head">
-            <h2>Saved items</h2>
-            <button id="refresh" class="secondary" type="button">Refresh</button>
-          </div>
-          <div id="entries" class="entries"></div>
         </section>
-      </section>
+
+        <section class="card game-panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow compact">Games</p>
+              <h2 class="calendar-title">Search RAWG and plan a session</h2>
+            </div>
+            <a class="rawg-link" href="https://rawg.io/apidocs" target="_blank" rel="noreferrer">Powered by RAWG</a>
+          </div>
+          <p class="status compact">Set `RAWG_API_KEY` on the server to enable search.</p>
+
+          <div class="game-search-bar">
+            <input id="game-query" type="search" placeholder="Search a game, like Hades or Stardew Valley" />
+            <button id="game-search-btn" type="button">Search</button>
+          </div>
+          <p id="game-search-status" class="status compact" aria-live="polite">Search for a game to start a plan.</p>
+
+          <div class="game-layout">
+            <div class="game-results-wrap">
+              <div class="game-status-window card">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow compact">Game library</p>
+                    <h3>Game status window</h3>
+                  </div>
+                  <p class="status compact">Saved game plans for the active user.</p>
+                </div>
+                <div class="game-status-grid" id="game-status-grid">
+                  <div class="game-status-card" data-game-status="want_to_play">
+                    <img class="game-status-banner" data-game-status-banner="want_to_play" alt="" />
+                    <span id="games-want-to-play">0</span>
+                    <label>Want to play</label>
+                  </div>
+                  <div class="game-status-card" data-game-status="playing">
+                    <img class="game-status-banner" data-game-status-banner="playing" alt="" />
+                    <span id="games-playing">0</span>
+                    <label>Playing</label>
+                  </div>
+                  <div class="game-status-card" data-game-status="played">
+                    <img class="game-status-banner" data-game-status-banner="played" alt="" />
+                    <span id="games-played">0</span>
+                    <label>Played</label>
+                  </div>
+                  <div class="game-status-card" data-game-status="finished">
+                    <img class="game-status-banner" data-game-status-banner="finished" alt="" />
+                    <span id="games-finished">0</span>
+                    <label>Finished</label>
+                  </div>
+                </div>
+              </div>
+              <div class="game-status-manager card">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow compact">Manage</p>
+                    <h3>Game status cards</h3>
+                  </div>
+                  <p class="status compact">Change a game&apos;s status without opening the planner form.</p>
+                </div>
+                <div id="game-status-manager" class="game-status-manager-grid"></div>
+              </div>
+              <div id="game-results" class="game-results"></div>
+            </div>
+            <aside class="game-selected card">
+              <div class="selected-cover-wrap">
+                <img id="game-selected-cover" alt="" />
+              </div>
+              <div class="selected-copy">
+                <p class="tag">Selected game</p>
+                <h3 id="game-selected-title">Nothing selected yet</h3>
+                <p id="game-selected-meta" class="game-meta">Search and pick a game to prefill the planner.</p>
+                <p id="game-selected-summary" class="details"></p>
+              </div>
+              <div class="entry-actions">
+                <button id="use-game-btn" class="secondary" type="button" disabled>Use in planner</button>
+                <button id="save-status-btn" class="secondary" type="button" disabled>Status only</button>
+                <button id="clear-game-btn" class="secondary" type="button">Clear</button>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="grid">
+          <section class="card quick-actions-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Add something special</h2>
+                <p class="status compact">Open a dialog to create or edit planner items, memos, and sketches.</p>
+              </div>
+              <button id="open-entry-dialog" class="secondary" type="button">New item</button>
+            </div>
+            <div class="quick-actions">
+              <button id="quick-add-memo" class="secondary" type="button">Add memo</button>
+              <button id="quick-add-entry" type="button">Open add dialog</button>
+            </div>
+          </section>
+
+          <section class="card list-panel">
+            <div class="panel-head">
+              <h2>Saved items</h2>
+              <button id="refresh" class="secondary" type="button">Refresh</button>
+            </div>
+            <div id="entries" class="entries"></div>
+          </section>
+        </section>
       </div>
     </main>
 
@@ -265,6 +298,136 @@
         </div>
       </article>
     </template>
+
+    <dialog id="entry-dialog" class="editor-dialog">
+      <form id="entry-form" class="card form dialog-card">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow compact">Entry</p>
+            <h2>Add something special</h2>
+          </div>
+          <button id="entry-dialog-close" class="secondary" type="button">Close</button>
+        </div>
+        <div class="field">
+          <label for="kind">Type</label>
+          <select id="kind" name="kind">
+            <option value="date">Date idea</option>
+            <option value="reminder">Reminder</option>
+            <option value="countdown">Countdown</option>
+            <option value="memory">Memory</option>
+            <option value="got_together">Got together</option>
+            <option value="game_plan">Game plan</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" name="title" type="text" placeholder="Dinner on Friday" required />
+        </div>
+        <div class="field">
+          <label for="details">Details</label>
+          <textarea id="details" name="details" rows="4" placeholder="Location, notes, what to bring..."></textarea>
+        </div>
+        <div class="field">
+          <label for="eventDate">Planned date</label>
+          <input id="eventDate" name="eventDate" type="datetime-local" required />
+        </div>
+        <div class="field">
+          <label for="reminderAt">Reminder</label>
+          <input id="reminderAt" name="reminderAt" type="datetime-local" />
+        </div>
+        <div class="field game-plan-only" hidden>
+          <label for="gameStatus">Game status</label>
+          <select id="gameStatus" name="gameStatus">
+            <option value="want_to_play">Want to play</option>
+            <option value="playing">Playing</option>
+            <option value="played">Played</option>
+            <option value="finished">Finished</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button type="submit">Save</button>
+          <button type="button" id="reset-form" class="secondary">Clear</button>
+        </div>
+        <p id="form-status" class="status" aria-live="polite"></p>
+      </form>
+    </dialog>
+
+    <dialog id="memo-dialog" class="editor-dialog">
+      <form id="memo-form" class="card form dialog-card">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow compact">Memo</p>
+            <h2>Leave a note for this day</h2>
+          </div>
+          <button id="memo-dialog-close" class="secondary" type="button">Close</button>
+        </div>
+        <p class="status compact">Add a memo to the selected day.</p>
+        <div class="field">
+          <label for="memo-title">Memo title</label>
+          <input id="memo-title" name="memo-title" type="text" placeholder="A short label for this note" />
+        </div>
+        <div class="field">
+          <label for="memo-text">Memo</label>
+          <textarea id="memo-text" name="memo-text" rows="4" placeholder="Write what you want to remember about this day."></textarea>
+        </div>
+        <div class="memo-sketch">
+          <div class="memo-sketch-head">
+            <p class="status compact">Sketch with touch, mouse, or stylus.</p>
+            <button id="memo-clear-sketch" class="secondary" type="button">Clear sketch</button>
+          </div>
+          <canvas id="memo-canvas" class="memo-canvas" width="960" height="240" aria-label="Memo sketch pad"></canvas>
+        </div>
+        <div class="actions">
+          <button type="submit">Save memo</button>
+          <button id="memo-reset" class="secondary" type="button">Clear memo</button>
+        </div>
+        <p id="memo-status" class="status" aria-live="polite"></p>
+      </form>
+    </dialog>
+
+    <dialog id="delete-dialog" class="editor-dialog delete-dialog">
+      <div class="card dialog-card">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow compact">Delete</p>
+            <h2 id="delete-dialog-title">Delete item</h2>
+          </div>
+          <button id="delete-dialog-close" class="secondary" type="button">Close</button>
+        </div>
+        <p id="delete-dialog-message" class="status"></p>
+        <div class="actions">
+          <button id="delete-dialog-confirm" type="button">Delete</button>
+          <button id="delete-dialog-cancel" class="secondary" type="button">Cancel</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="game-rating-dialog" class="rating-dialog">
+      <div class="rating-dialog-card">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow compact">Rate game</p>
+            <h3 id="game-rating-title">Game title</h3>
+          </div>
+          <button id="game-rating-close" class="secondary" type="button">Close</button>
+        </div>
+        <p id="game-rating-meta" class="status compact"></p>
+        <p id="game-rating-value" class="tag compact">Not rated</p>
+        <div id="game-rating-options" class="rating-options" role="radiogroup" aria-label="Game rating">
+          <button type="button" class="rating-choice" data-game-rating-option="1" aria-label="1 star">1</button>
+          <button type="button" class="rating-choice" data-game-rating-option="2" aria-label="2 stars">2</button>
+          <button type="button" class="rating-choice" data-game-rating-option="3" aria-label="3 stars">3</button>
+          <button type="button" class="rating-choice" data-game-rating-option="4" aria-label="4 stars">4</button>
+          <button type="button" class="rating-choice" data-game-rating-option="5" aria-label="5 stars">5</button>
+        </div>
+        <p class="status compact">Pick a rating from 1 to 5, or clear it if you change your mind.</p>
+        <div class="actions">
+          <button id="game-rating-save" type="button">Save rating</button>
+          <button id="game-rating-clear" class="secondary" type="button">Clear rating</button>
+          <button id="game-rating-cancel" class="secondary" type="button">Cancel</button>
+        </div>
+      </div>
+    </dialog>
 
     <script src="/app.js" type="module"></script>
   </body>

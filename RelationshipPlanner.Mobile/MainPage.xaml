@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="RelationshipPlanner.Mobile.MainPage"
+             BackgroundColor="{AppThemeBinding Light=#fff8f1, Dark=#111111}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24,36" Spacing="20">
+            <Frame BackgroundColor="{AppThemeBinding Light=#ffffff, Dark=#1d1d1d}"
+                   BorderColor="#d08a7b"
+                   CornerRadius="28"
+                   HasShadow="True"
+                   Padding="20">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="Relationship Planner"
+                           FontSize="30"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#7f1d1d, Dark=#f0c2b5}" />
+
+                    <Label Text="A mobile starter for dates, reminders, memories, and shared planning."
+                           FontSize="15"
+                           TextColor="{AppThemeBinding Light=#54403c, Dark=#d3c7c4}" />
+
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                        <Frame Grid.Row="0" Grid.Column="0" BackgroundColor="{AppThemeBinding Light=#fff2ee, Dark=#2a1d1d}" CornerRadius="18" HasShadow="False" Padding="14">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Planner" FontAttributes="Bold" FontSize="16" TextColor="{AppThemeBinding Light=#7f1d1d, Dark=#f0c2b5}" />
+                                <Label Text="Dates, reminders, and countdowns." FontSize="13" TextColor="{AppThemeBinding Light=#5a4a47, Dark=#c8b9b6}" />
+                            </VerticalStackLayout>
+                        </Frame>
+
+                        <Frame Grid.Row="0" Grid.Column="1" BackgroundColor="{AppThemeBinding Light=#f7f4ff, Dark=#23202c}" CornerRadius="18" HasShadow="False" Padding="14">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Games" FontAttributes="Bold" FontSize="16" TextColor="{AppThemeBinding Light=#5a3172, Dark=#d4b7e7}" />
+                                <Label Text="RAWG, Steam, status, and library checks." FontSize="13" TextColor="{AppThemeBinding Light=#5a4a47, Dark=#c8b9b6}" />
+                            </VerticalStackLayout>
+                        </Frame>
+
+                        <Frame Grid.Row="1" Grid.Column="0" BackgroundColor="{AppThemeBinding Light=#eef7ef, Dark=#1f2b22}" CornerRadius="18" HasShadow="False" Padding="14">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Finance" FontAttributes="Bold" FontSize="16" TextColor="{AppThemeBinding Light=#31613c, Dark=#b8e0c1}" />
+                                <Label Text="Monthly budgets and section management." FontSize="13" TextColor="{AppThemeBinding Light=#5a4a47, Dark=#c8b9b6}" />
+                            </VerticalStackLayout>
+                        </Frame>
+
+                        <Frame Grid.Row="1" Grid.Column="1" BackgroundColor="{AppThemeBinding Light=#fff7e7, Dark=#2b2417}" CornerRadius="18" HasShadow="False" Padding="14">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="Users" FontAttributes="Bold" FontSize="16" TextColor="{AppThemeBinding Light=#8a5a1f, Dark=#f1d39b}" />
+                                <Label Text="Switch people, themes, and per-user data." FontSize="13" TextColor="{AppThemeBinding Light=#5a4a47, Dark=#c8b9b6}" />
+                            </VerticalStackLayout>
+                        </Frame>
+                    </Grid>
+
+                    <Button Text="Open planner shell"
+                            BackgroundColor="#c3252d"
+                            TextColor="White"
+                            CornerRadius="18"
+                            Padding="16,14" />
+                </VerticalStackLayout>
+            </Frame>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
