@@ -4,11 +4,11 @@ node_modules/
 .DS_Store
 *.log
 *.user
-mudblazor-rebuild/bin/
-mudblazor-rebuild/obj/
-mudblazor-rebuild/App_Data/
-RelationshipPlanner.Mobile/bin/
-RelationshipPlanner.Mobile/obj/
+apps/BlazorApp/bin/
+apps/BlazorApp/obj/
+apps/BlazorApp/App_Data/
+apps/MobileApp/bin/
+apps/MobileApp/obj/
 node-app/.env
 node-app/data/
 node-app/node_modules/

@@ -3,8 +3,8 @@
 This repo now holds three related projects:
 
 - [`node-app/`](C:\Users\Reavus\Documents\New%20project\node-app) - the original Node/SQLite app
-- [`mudblazor-rebuild/`](C:\Users\Reavus\Documents\New%20project\mudblazor-rebuild) - the Blazor/MudBlazor rebuild
-- [`RelationshipPlanner.Mobile/`](C:\Users\Reavus\Documents\New%20project\RelationshipPlanner.Mobile) - the .NET MAUI mobile starter
+- [`apps/BlazorApp/`](C:\Users\Reavus\Documents\New%20project\apps\BlazorApp) - the Blazor/MudBlazor rebuild
+- [`apps/MobileApp/`](C:\Users\Reavus\Documents\New%20project\apps\MobileApp) - the .NET MAUI mobile starter
 
 ## Which app should I open?
 
