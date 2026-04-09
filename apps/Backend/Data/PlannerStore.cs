@@ -115,6 +115,8 @@ public sealed class PlannerStore
                         name nvarchar(200) not null,
                         budget_amount decimal(18,2) not null constraint df_planner_finance_items_budget default 0,
                         actual_amount decimal(18,2) not null constraint df_planner_finance_items_actual default 0,
+                        debt_total_amount decimal(18,2) not null constraint df_planner_finance_items_debt_total default 0,
+                        initial_paid_amount decimal(18,2) not null constraint df_planner_finance_items_initial_paid default 0,
                         due_date date null,
                         notes nvarchar(max) not null constraint df_planner_finance_items_notes default '',
                         is_shared bit not null constraint df_planner_finance_items_shared default 0,
@@ -164,6 +166,24 @@ public sealed class PlannerStore
                 end;
                 """;
             await command.ExecuteNonQueryAsync();
+        }
+
+        await using (var addColumnCommand = connection.CreateCommand())
+        {
+            addColumnCommand.CommandText = """
+                if col_length('dbo.planner_finance_items', 'debt_total_amount') is null
+                begin
+                    alter table dbo.planner_finance_items
+                    add debt_total_amount decimal(18,2) not null constraint df_planner_finance_items_debt_total default 0 with values;
+                end;
+
+                if col_length('dbo.planner_finance_items', 'initial_paid_amount') is null
+                begin
+                    alter table dbo.planner_finance_items
+                    add initial_paid_amount decimal(18,2) not null constraint df_planner_finance_items_initial_paid default 0 with values;
+                end;
+                """;
+            await addColumnCommand.ExecuteNonQueryAsync();
         }
 
         if (await CountAsync(connection, "dbo.planner_users") == 0)
@@ -556,7 +576,7 @@ public sealed class PlannerStore
 
         var command = connection.CreateCommand();
         command.CommandText = """
-            select id, user_id, month_key, bucket, name, budget_amount, actual_amount, due_date, notes, is_shared, sort_order, created_at, updated_at
+            select id, user_id, month_key, bucket, name, budget_amount, actual_amount, debt_total_amount, initial_paid_amount, due_date, notes, is_shared, sort_order, created_at, updated_at
             from dbo.planner_finance_items
             where user_id = @user_id and month_key = @month_key
             order by sort_order asc, bucket asc, name asc, id asc;
@@ -581,7 +601,7 @@ public sealed class PlannerStore
 
         var command = connection.CreateCommand();
         command.CommandText = """
-            select id, user_id, month_key, bucket, name, budget_amount, actual_amount, due_date, notes, is_shared, sort_order, created_at, updated_at
+            select id, user_id, month_key, bucket, name, budget_amount, actual_amount, debt_total_amount, initial_paid_amount, due_date, notes, is_shared, sort_order, created_at, updated_at
             from dbo.planner_finance_items
             where id = @id;
             """;
@@ -611,12 +631,12 @@ public sealed class PlannerStore
         {
             command.CommandText = """
                 insert into dbo.planner_finance_items (
-                    user_id, month_key, bucket, name, budget_amount, actual_amount, due_date,
+                    user_id, month_key, bucket, name, budget_amount, actual_amount, debt_total_amount, initial_paid_amount, due_date,
                     notes, is_shared, sort_order, created_at, updated_at
                 )
                 output inserted.id
                 values (
-                    @user_id, @month_key, @bucket, @name, @budget_amount, @actual_amount, @due_date,
+                    @user_id, @month_key, @bucket, @name, @budget_amount, @actual_amount, @debt_total_amount, @initial_paid_amount, @due_date,
                     @notes, @is_shared, @sort_order, @created_at, @updated_at
                 );
                 """;
@@ -632,6 +652,8 @@ public sealed class PlannerStore
                     name = @name,
                     budget_amount = @budget_amount,
                     actual_amount = @actual_amount,
+                    debt_total_amount = @debt_total_amount,
+                    initial_paid_amount = @initial_paid_amount,
                     due_date = @due_date,
                     notes = @notes,
                     is_shared = @is_shared,
@@ -650,6 +672,8 @@ public sealed class PlannerStore
         command.Parameters.AddWithValue("@name", item.Name);
         command.Parameters.AddWithValue("@budget_amount", item.BudgetAmount);
         command.Parameters.AddWithValue("@actual_amount", item.ActualAmount);
+        command.Parameters.AddWithValue("@debt_total_amount", item.DebtTotalAmount);
+        command.Parameters.AddWithValue("@initial_paid_amount", item.InitialPaidAmount);
         command.Parameters.AddWithValue("@due_date", item.DueDate is null ? DBNull.Value : item.DueDate.Value.ToDateTime(TimeOnly.MinValue));
         command.Parameters.AddWithValue("@notes", item.Notes);
         command.Parameters.AddWithValue("@is_shared", item.IsShared);
@@ -689,6 +713,8 @@ public sealed class PlannerStore
                 coalesce(sum(case when bucket <> 'income' then actual_amount else 0 end), 0) as actual_outflow,
                 coalesce(sum(case when bucket = 'savings' then budget_amount else 0 end), 0) as savings_budget,
                 coalesce(sum(case when bucket = 'cash' then budget_amount else 0 end), 0) as cash_budget,
+                coalesce(sum(debt_total_amount), 0) as debt_total_amount,
+                coalesce(sum(initial_paid_amount), 0) as initial_paid_amount,
                 max(updated_at) as last_updated
             from dbo.planner_finance_items
             where user_id = @user_id and month_key = @month_key;
@@ -711,7 +737,9 @@ public sealed class PlannerStore
             ActualOutflow = GetDecimalOrZero(reader, 4),
             SavingsBudget = GetDecimalOrZero(reader, 5),
             CashBudget = GetDecimalOrZero(reader, 6),
-            LastUpdated = reader.IsDBNull(7) ? null : reader.GetDateTimeOffset(7)
+            DebtTotalAmount = GetDecimalOrZero(reader, 7),
+            InitialPaidAmount = GetDecimalOrZero(reader, 8),
+            LastUpdated = reader.IsDBNull(9) ? null : reader.GetDateTimeOffset(9)
         };
     }
 
@@ -1051,12 +1079,14 @@ public sealed class PlannerStore
             Name = reader.GetString(4),
             BudgetAmount = GetDecimalOrZero(reader, 5),
             ActualAmount = GetDecimalOrZero(reader, 6),
-            DueDate = reader.IsDBNull(7) ? null : DateOnly.FromDateTime(reader.GetDateTime(7)),
-            Notes = reader.GetString(8),
-            IsShared = reader.GetBoolean(9),
-            SortOrder = reader.GetInt32(10),
-            CreatedAt = reader.GetDateTimeOffset(11),
-            UpdatedAt = reader.GetDateTimeOffset(12)
+            DebtTotalAmount = GetDecimalOrZero(reader, 7),
+            InitialPaidAmount = GetDecimalOrZero(reader, 8),
+            DueDate = reader.IsDBNull(9) ? null : DateOnly.FromDateTime(reader.GetDateTime(9)),
+            Notes = reader.GetString(10),
+            IsShared = reader.GetBoolean(11),
+            SortOrder = reader.GetInt32(12),
+            CreatedAt = reader.GetDateTimeOffset(13),
+            UpdatedAt = reader.GetDateTimeOffset(14)
         };
     }
 

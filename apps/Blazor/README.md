@@ -64,6 +64,7 @@ The app runs locally on:
 
 - The `Finance` tab is per-user and month-based.
 - It uses a spreadsheet-style budget layout with income, fixed costs, flexible spending, savings, and cash buffer lines.
+- Finance lines can also track a debt total and an initial paid amount, with the remaining debt calculated from those values.
 - Use `Load defaults` to seed the month from the editable default template for that user.
 - The default template itself can be managed in the Finance page, so you can add, edit, or delete the starter lines.
 - Each line tracks budgeted amount, actual amount, due date, notes, and whether it is shared.

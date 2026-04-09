@@ -12,6 +12,7 @@ This repo now holds five related projects:
 
 - Open [`node-app/README.md`](C:\Users\Reavus\Documents\New%20project\node-app\README.md) if you want the original Node version
 - Open [`RelationshipPlanner.slnx`](C:\Users\Reavus\Documents\New%20project\RelationshipPlanner.slnx) in Visual Studio for the .NET projects
+- Finance now includes debt tracking fields on each line for total debt and initial paid amount.
 
 ## Current baseline
 

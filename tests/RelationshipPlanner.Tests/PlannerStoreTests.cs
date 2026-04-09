@@ -86,6 +86,24 @@ public sealed class PlannerStoreTests
             Assert.That(result, Is.Not.Null, $"{tableName} should exist.");
             Assert.That(Convert.ToInt32(result), Is.GreaterThan(0), $"{tableName} should exist.");
         }
+
+        foreach (var columnName in new[]
+        {
+            "debt_total_amount",
+            "initial_paid_amount"
+        })
+        {
+            await using var columnCommand = connection.CreateCommand();
+            columnCommand.CommandText = """
+                select col_length('dbo.planner_finance_items', @column_name);
+                """;
+            columnCommand.Parameters.AddWithValue("@column_name", columnName);
+
+            var columnResult = await columnCommand.ExecuteScalarAsync();
+
+            Assert.That(columnResult, Is.Not.Null, $"{columnName} should exist.");
+            Assert.That(Convert.ToInt32(columnResult), Is.GreaterThan(0), $"{columnName} should exist.");
+        }
     }
 
     [Test]
@@ -152,6 +170,39 @@ public sealed class PlannerStoreTests
         Assert.That(entries[0].TargetDate, Is.EqualTo(new DateOnly(2026, 4, 5)));
         Assert.That(summary.TotalEntries, Is.EqualTo(1));
         Assert.That(summary.DateIdeas, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task SaveFinanceItemAsync_PersistsDebtFieldsAndSummary()
+    {
+        var store = CreateStore();
+        await store.InitializeAsync();
+
+        var saved = await store.SaveFinanceItemAsync(new FinanceItem
+        {
+            UserId = 1,
+            MonthKey = "2026-04-01",
+            Bucket = "fixed",
+            Name = "Car finance",
+            BudgetAmount = 220.50m,
+            ActualAmount = 125.25m,
+            DebtTotalAmount = 1200m,
+            InitialPaidAmount = 300m,
+            Notes = "Monthly car finance",
+            IsShared = true,
+            SortOrder = 0
+        });
+
+        var items = await store.GetFinanceItemsAsync(1, new DateOnly(2026, 4, 1));
+        var summary = await store.GetFinanceSummaryAsync(1, new DateOnly(2026, 4, 1));
+
+        Assert.That(saved.Id, Is.GreaterThan(0));
+        Assert.That(items, Has.Count.EqualTo(1));
+        Assert.That(items[0].DebtTotalAmount, Is.EqualTo(1200m));
+        Assert.That(items[0].InitialPaidAmount, Is.EqualTo(300m));
+        Assert.That(summary.DebtTotalAmount, Is.EqualTo(1200m));
+        Assert.That(summary.InitialPaidAmount, Is.EqualTo(300m));
+        Assert.That(summary.DebtRemainingAmount, Is.EqualTo(900m));
     }
 
     private PlannerStore CreateStore()

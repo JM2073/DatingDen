@@ -36,6 +36,9 @@ public sealed class FinanceSummary
     public decimal ActualOutflow { get; set; }
     public decimal SavingsBudget { get; set; }
     public decimal CashBudget { get; set; }
+    public decimal DebtTotalAmount { get; set; }
+    public decimal InitialPaidAmount { get; set; }
+    public decimal DebtRemainingAmount => DebtTotalAmount - InitialPaidAmount;
     public decimal NetBudget { get; set; }
     public decimal NetActual { get; set; }
 }

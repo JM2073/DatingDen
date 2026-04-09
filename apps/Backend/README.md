@@ -16,4 +16,5 @@ For local development, the repo ships with a `ConnectionStrings:PlannerDatabase`
 
 - Shared users and settings
 - Shared planner entries
+- Finance items with monthly budget, actual spend, and debt tracking fields.
 - The backend foundation for the Blazor web app and Android app

@@ -78,6 +78,8 @@ public sealed class FinanceItem
     public string Name { get; set; } = string.Empty;
     public decimal BudgetAmount { get; set; }
     public decimal ActualAmount { get; set; }
+    public decimal DebtTotalAmount { get; set; }
+    public decimal InitialPaidAmount { get; set; }
     public DateOnly? DueDate { get; set; }
     public string Notes { get; set; } = string.Empty;
     public bool IsShared { get; set; }
@@ -111,6 +113,9 @@ public sealed class FinanceSummary
     public decimal ActualOutflow { get; init; }
     public decimal SavingsBudget { get; init; }
     public decimal CashBudget { get; init; }
+    public decimal DebtTotalAmount { get; init; }
+    public decimal InitialPaidAmount { get; init; }
+    public decimal DebtRemainingAmount => DebtTotalAmount - InitialPaidAmount;
     public decimal NetBudget => BudgetedIncome - BudgetedOutflow;
     public decimal NetActual => ActualIncome - ActualOutflow;
     public DateTimeOffset? LastUpdated { get; init; }

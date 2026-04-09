@@ -60,6 +60,30 @@
     </MudGrid>
 
     <MudGrid Spacing="3">
+        <MudItem xs="12" sm="4">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Debt total</MudText>
+                <MudText Typo="Typo.h4">@FormatCurrency(_summary.DebtTotalAmount)</MudText>
+                <MudText Typo="Typo.body2">All debt tracked on finance lines.</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Initial paid</MudText>
+                <MudText Typo="Typo.h4">@FormatCurrency(_summary.InitialPaidAmount)</MudText>
+                <MudText Typo="Typo.body2">Amount already paid before this month.</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Elevation="1" Class="metric-card pa-4">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">Debt remaining</MudText>
+                <MudText Typo="Typo.h4">@FormatCurrency(_summary.DebtRemainingAmount)</MudText>
+                <MudText Typo="Typo.body2">Debt total minus the initial paid amount.</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Spacing="3">
         <MudItem xs="12" lg="8">
             <MudPaper Elevation="1" Class="pa-5">
                 <MudStack Spacing="2">
@@ -109,6 +133,9 @@
                                 <MudTh>Line</MudTh>
                                 <MudTh>Budget</MudTh>
                                 <MudTh>Actual</MudTh>
+                                <MudTh>Debt total</MudTh>
+                                <MudTh>Initial paid</MudTh>
+                                <MudTh>Debt left</MudTh>
                                 <MudTh>Remaining</MudTh>
                                 <MudTh>Due</MudTh>
                                 <MudTh>Notes</MudTh>
@@ -161,6 +188,27 @@
                                         @FormatCurrency(context.ActualAmount)
                                     }
                                 </MudTd>
+                                <MudTd DataLabel="Debt total">
+                                    @if (_editingItemId == context.Id)
+                                    {
+                                        <MudNumericField T="decimal" @bind-Value="context.DebtTotalAmount" Variant="Variant.Outlined" />
+                                    }
+                                    else
+                                    {
+                                        @FormatCurrency(context.DebtTotalAmount)
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Initial paid">
+                                    @if (_editingItemId == context.Id)
+                                    {
+                                        <MudNumericField T="decimal" @bind-Value="context.InitialPaidAmount" Variant="Variant.Outlined" />
+                                    }
+                                    else
+                                    {
+                                        @FormatCurrency(context.InitialPaidAmount)
+                                    }
+                                </MudTd>
+                                <MudTd DataLabel="Debt left" Style="@GetDebtRemainingStyle(context)">@FormatCurrency(GetDebtRemaining(context))</MudTd>
                                 <MudTd DataLabel="Remaining" Style="@GetRemainingStyle(context)">@FormatCurrency(GetRemaining(context))</MudTd>
                                 <MudTd DataLabel="Due">
                                     @if (_editingItemId == context.Id)
@@ -237,6 +285,9 @@
                         </MudSelect>
                         <MudTextField @bind-Value="_draft.BudgetAmountText" Label="Budget amount" Variant="Variant.Outlined" InputType="InputType.Number" />
                         <MudTextField @bind-Value="_draft.ActualAmountText" Label="Actual amount" Variant="Variant.Outlined" InputType="InputType.Number" />
+                        <MudTextField @bind-Value="_draft.DebtTotalAmountText" Label="Debt total" Variant="Variant.Outlined" InputType="InputType.Number" />
+                        <MudTextField @bind-Value="_draft.InitialPaidAmountText" Label="Initial paid" Variant="Variant.Outlined" InputType="InputType.Number" />
+                        <MudText Typo="Typo.caption" Class="muted">Use these fields for debts or balances where you want to track the total amount and what has already been paid.</MudText>
                         <MudTextField @bind-Value="_draft.DueDateText" Label="Due date" Variant="Variant.Outlined" InputType="InputType.Date" />
                         <MudCheckBox @bind-Value="_draft.IsShared" Label="Shared line" />
                         <MudTextField @bind-Value="_draft.Notes" Label="Notes" Variant="Variant.Outlined" Lines="4" />
@@ -465,20 +516,22 @@
         }
 
         var currentUserId = GetCurrentUserId();
-        var saved = await Api.SaveFinanceItemAsync(new FinanceItem
-        {
-            Id = _draft.Id,
-            UserId = _draft.UserId == 0 ? currentUserId : _draft.UserId,
-            MonthKey = GetMonthKey(_selectedMonth),
-            Bucket = _draft.Bucket,
-            Name = _draft.Name.Trim(),
-            BudgetAmount = ParseMoney(_draft.BudgetAmountText),
-            ActualAmount = ParseMoney(_draft.ActualAmountText),
-            DueDate = _draft.DueDate,
-            Notes = _draft.Notes.Trim(),
-            IsShared = _draft.IsShared,
-            SortOrder = _draft.SortOrder
-        });
+            var saved = await Api.SaveFinanceItemAsync(new FinanceItem
+            {
+                Id = _draft.Id,
+                UserId = _draft.UserId == 0 ? currentUserId : _draft.UserId,
+                MonthKey = GetMonthKey(_selectedMonth),
+                Bucket = _draft.Bucket,
+                Name = _draft.Name.Trim(),
+                BudgetAmount = ParseMoney(_draft.BudgetAmountText),
+                ActualAmount = ParseMoney(_draft.ActualAmountText),
+                DebtTotalAmount = ParseMoney(_draft.DebtTotalAmountText),
+                InitialPaidAmount = ParseMoney(_draft.InitialPaidAmountText),
+                DueDate = _draft.DueDate,
+                Notes = _draft.Notes.Trim(),
+                IsShared = _draft.IsShared,
+                SortOrder = _draft.SortOrder
+            });
 
         _draft.Id = saved.Id;
         await LoadAsync();
@@ -583,6 +636,8 @@
         _draft.Bucket = item.Bucket;
         _draft.BudgetAmountText = item.BudgetAmount.ToString(CultureInfo.CurrentCulture);
         _draft.ActualAmountText = item.ActualAmount.ToString(CultureInfo.CurrentCulture);
+        _draft.DebtTotalAmountText = item.DebtTotalAmount.ToString(CultureInfo.CurrentCulture);
+        _draft.InitialPaidAmountText = item.InitialPaidAmount.ToString(CultureInfo.CurrentCulture);
         _draft.DueDate = item.DueDate;
         _draft.IsShared = item.IsShared;
         _draft.Notes = item.Notes;
@@ -613,6 +668,8 @@
             ?? "fixed";
         _draft.BudgetAmountText = string.Empty;
         _draft.ActualAmountText = string.Empty;
+        _draft.DebtTotalAmountText = string.Empty;
+        _draft.InitialPaidAmountText = string.Empty;
         _draft.DueDate = null;
         _draft.Notes = string.Empty;
         _draft.IsShared = false;
@@ -693,6 +750,8 @@
                 Name = item.Name,
                 BudgetAmount = item.BudgetAmount,
                 ActualAmount = 0m,
+                DebtTotalAmount = item.DebtTotalAmount,
+                InitialPaidAmount = item.InitialPaidAmount,
                 DueDate = item.DueDate,
                 Notes = item.Notes,
                 IsShared = item.IsShared,
@@ -809,9 +868,18 @@
 
     private static decimal GetRemaining(FinanceItem item) => item.BudgetAmount - item.ActualAmount;
 
+    private static decimal GetDebtRemaining(FinanceItem item) => item.DebtTotalAmount - item.InitialPaidAmount;
+
     private string GetRemainingStyle(FinanceItem item)
     {
         return GetRemaining(item) < 0
+            ? "color:#c3252d;font-weight:700;"
+            : string.Empty;
+    }
+
+    private string GetDebtRemainingStyle(FinanceItem item)
+    {
+        return GetDebtRemaining(item) < 0
             ? "color:#c3252d;font-weight:700;"
             : string.Empty;
     }
@@ -887,6 +955,8 @@
         public string Bucket { get; set; } = "fixed";
         public string BudgetAmountText { get; set; } = string.Empty;
         public string ActualAmountText { get; set; } = string.Empty;
+        public string DebtTotalAmountText { get; set; } = string.Empty;
+        public string InitialPaidAmountText { get; set; } = string.Empty;
         public DateOnly? DueDate { get; set; }
         public string Notes { get; set; } = string.Empty;
         public bool IsShared { get; set; }
