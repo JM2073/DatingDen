@@ -102,6 +102,8 @@ public sealed class FinanceItem
             }
         }
     }
+
+    public decimal DebtRemainingAmount => Math.Max(0m, DebtTotalAmount - InitialPaidAmount - ActualAmount);
 }
 
 public sealed class FinanceSummary
@@ -115,7 +117,8 @@ public sealed class FinanceSummary
     public decimal CashBudget { get; init; }
     public decimal DebtTotalAmount { get; init; }
     public decimal InitialPaidAmount { get; init; }
-    public decimal DebtRemainingAmount => DebtTotalAmount - InitialPaidAmount;
+    public decimal DebtPaidThisMonthAmount { get; init; }
+    public decimal DebtRemainingAmount => Math.Max(0m, DebtTotalAmount - InitialPaidAmount - DebtPaidThisMonthAmount);
     public decimal NetBudget => BudgetedIncome - BudgetedOutflow;
     public decimal NetActual => ActualIncome - ActualOutflow;
     public DateTimeOffset? LastUpdated { get; init; }

@@ -38,7 +38,29 @@ public sealed class FinanceSummary
     public decimal CashBudget { get; set; }
     public decimal DebtTotalAmount { get; set; }
     public decimal InitialPaidAmount { get; set; }
-    public decimal DebtRemainingAmount => DebtTotalAmount - InitialPaidAmount;
+    public decimal DebtPaidThisMonthAmount { get; set; }
+    public decimal DebtRemainingAmount => Math.Max(0m, DebtTotalAmount - InitialPaidAmount - DebtPaidThisMonthAmount);
     public decimal NetBudget { get; set; }
     public decimal NetActual { get; set; }
+}
+
+public sealed class FinanceItem
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string MonthKey { get; set; } = string.Empty;
+    public string Bucket { get; set; } = "income";
+    public string Name { get; set; } = string.Empty;
+    public decimal BudgetAmount { get; set; }
+    public decimal ActualAmount { get; set; }
+    public decimal DebtTotalAmount { get; set; }
+    public decimal InitialPaidAmount { get; set; }
+    public DateOnly? DueDate { get; set; }
+    public string Notes { get; set; } = string.Empty;
+    public bool IsShared { get; set; }
+    public int SortOrder { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+
+    public decimal DebtRemainingAmount => Math.Max(0m, DebtTotalAmount - InitialPaidAmount - ActualAmount);
 }

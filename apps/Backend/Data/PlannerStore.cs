@@ -715,6 +715,7 @@ public sealed class PlannerStore
                 coalesce(sum(case when bucket = 'cash' then budget_amount else 0 end), 0) as cash_budget,
                 coalesce(sum(debt_total_amount), 0) as debt_total_amount,
                 coalesce(sum(initial_paid_amount), 0) as initial_paid_amount,
+                coalesce(sum(case when debt_total_amount > 0 then actual_amount else 0 end), 0) as debt_paid_this_month_amount,
                 max(updated_at) as last_updated
             from dbo.planner_finance_items
             where user_id = @user_id and month_key = @month_key;
@@ -739,7 +740,8 @@ public sealed class PlannerStore
             CashBudget = GetDecimalOrZero(reader, 6),
             DebtTotalAmount = GetDecimalOrZero(reader, 7),
             InitialPaidAmount = GetDecimalOrZero(reader, 8),
-            LastUpdated = reader.IsDBNull(9) ? null : reader.GetDateTimeOffset(9)
+            DebtPaidThisMonthAmount = GetDecimalOrZero(reader, 9),
+            LastUpdated = reader.IsDBNull(10) ? null : reader.GetDateTimeOffset(10)
         };
     }
 

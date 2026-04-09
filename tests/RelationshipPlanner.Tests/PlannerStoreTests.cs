@@ -202,7 +202,8 @@ public sealed class PlannerStoreTests
         Assert.That(items[0].InitialPaidAmount, Is.EqualTo(300m));
         Assert.That(summary.DebtTotalAmount, Is.EqualTo(1200m));
         Assert.That(summary.InitialPaidAmount, Is.EqualTo(300m));
-        Assert.That(summary.DebtRemainingAmount, Is.EqualTo(900m));
+        Assert.That(summary.DebtPaidThisMonthAmount, Is.EqualTo(125.25m));
+        Assert.That(summary.DebtRemainingAmount, Is.EqualTo(774.75m));
     }
 
     private PlannerStore CreateStore()

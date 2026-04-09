@@ -60,30 +60,6 @@
     </MudGrid>
 
     <MudGrid Spacing="3">
-        <MudItem xs="12" sm="4">
-            <MudPaper Elevation="1" Class="metric-card pa-4">
-                <MudText Typo="Typo.overline" Color="Color.Secondary">Debt total</MudText>
-                <MudText Typo="Typo.h4">@FormatCurrency(_summary.DebtTotalAmount)</MudText>
-                <MudText Typo="Typo.body2">All debt tracked on finance lines.</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudPaper Elevation="1" Class="metric-card pa-4">
-                <MudText Typo="Typo.overline" Color="Color.Secondary">Initial paid</MudText>
-                <MudText Typo="Typo.h4">@FormatCurrency(_summary.InitialPaidAmount)</MudText>
-                <MudText Typo="Typo.body2">Amount already paid before this month.</MudText>
-            </MudPaper>
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudPaper Elevation="1" Class="metric-card pa-4">
-                <MudText Typo="Typo.overline" Color="Color.Secondary">Debt remaining</MudText>
-                <MudText Typo="Typo.h4">@FormatCurrency(_summary.DebtRemainingAmount)</MudText>
-                <MudText Typo="Typo.body2">Debt total minus the initial paid amount.</MudText>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-
-    <MudGrid Spacing="3">
         <MudItem xs="12" lg="8">
             <MudPaper Elevation="1" Class="pa-5">
                 <MudStack Spacing="2">
@@ -120,11 +96,11 @@
                     }
                     else
                     {
-                        <MudTable Items="@_items"
-                                  Dense="true"
-                                  Hover="true"
-                                  Striped="true"
-                                  Bordered="true"
+                            <MudTable Items="@_items"
+                                      Dense="true"
+                                      Hover="true"
+                                      Striped="true"
+                                      Bordered="true"
                                   Breakpoint="Breakpoint.Sm"
                                   Elevation="0"
                                   RowsPerPage="10"
@@ -133,9 +109,6 @@
                                 <MudTh>Line</MudTh>
                                 <MudTh>Budget</MudTh>
                                 <MudTh>Actual</MudTh>
-                                <MudTh>Debt total</MudTh>
-                                <MudTh>Initial paid</MudTh>
-                                <MudTh>Debt left</MudTh>
                                 <MudTh>Remaining</MudTh>
                                 <MudTh>Due</MudTh>
                                 <MudTh>Notes</MudTh>
@@ -163,6 +136,12 @@
                                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Style="@GetBucketStyle(context.Bucket)">
                                                     @GetBucketLabel(context.Bucket)
                                                 </MudChip>
+                                                @if (IsDebtTracked(context))
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">
+                                                        Debt
+                                                    </MudChip>
+                                                }
                                                 <MudText Typo="Typo.subtitle2">@context.Name</MudText>
                                             </MudStack>
                                         </MudStack>
@@ -188,27 +167,6 @@
                                         @FormatCurrency(context.ActualAmount)
                                     }
                                 </MudTd>
-                                <MudTd DataLabel="Debt total">
-                                    @if (_editingItemId == context.Id)
-                                    {
-                                        <MudNumericField T="decimal" @bind-Value="context.DebtTotalAmount" Variant="Variant.Outlined" />
-                                    }
-                                    else
-                                    {
-                                        @FormatCurrency(context.DebtTotalAmount)
-                                    }
-                                </MudTd>
-                                <MudTd DataLabel="Initial paid">
-                                    @if (_editingItemId == context.Id)
-                                    {
-                                        <MudNumericField T="decimal" @bind-Value="context.InitialPaidAmount" Variant="Variant.Outlined" />
-                                    }
-                                    else
-                                    {
-                                        @FormatCurrency(context.InitialPaidAmount)
-                                    }
-                                </MudTd>
-                                <MudTd DataLabel="Debt left" Style="@GetDebtRemainingStyle(context)">@FormatCurrency(GetDebtRemaining(context))</MudTd>
                                 <MudTd DataLabel="Remaining" Style="@GetRemainingStyle(context)">@FormatCurrency(GetRemaining(context))</MudTd>
                                 <MudTd DataLabel="Due">
                                     @if (_editingItemId == context.Id)
@@ -258,6 +216,84 @@
                             <NoRecordsContent>
                                 <MudText Typo="Typo.body2" Class="muted">No finance lines match this month yet.</MudText>
                             </NoRecordsContent>
+                        </MudTable>
+                    }
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Elevation="1" Class="pa-5 mt-4">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <div>
+                            <MudText Typo="Typo.h5">Debt tracking</MudText>
+                            <MudText Typo="Typo.body2" Class="muted">
+                                Track total debt, any amount already paid, and this month’s actual payment against the balance.
+                            </MudText>
+                        </div>
+                        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Justify="Justify.FlexEnd">
+                            <MudChip T="string" Variant="Variant.Filled" Color="Color.Primary">
+                                Total: @FormatCurrency(_summary.DebtTotalAmount)
+                            </MudChip>
+                            <MudChip T="string" Variant="Variant.Outlined" Color="Color.Secondary">
+                                Remaining: @FormatCurrency(_summary.DebtRemainingAmount)
+                            </MudChip>
+                        </MudStack>
+                    </MudStack>
+
+                    @{
+                        var debtItems = GetDebtItems();
+                    }
+
+                    @if (debtItems.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="muted">No debt rows have been added for this month yet.</MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="@debtItems"
+                                  Dense="true"
+                                  Hover="true"
+                                  Striped="true"
+                                  Bordered="true"
+                                  Breakpoint="Breakpoint.Sm"
+                                  Elevation="0"
+                                  RowsPerPage="6"
+                                  Class="finance-table">
+                            <HeaderContent>
+                                <MudTh>Line</MudTh>
+                                <MudTh>Total debt</MudTh>
+                                <MudTh>Initial paid</MudTh>
+                                <MudTh>This month</MudTh>
+                                <MudTh>Remaining</MudTh>
+                                <MudTh>Due</MudTh>
+                                <MudTh>Notes</MudTh>
+                                <MudTh>Actions</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Line">
+                                    <MudStack Spacing="1">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Style="@GetBucketStyle(context.Bucket)">
+                                                @GetBucketLabel(context.Bucket)
+                                            </MudChip>
+                                            <MudText Typo="Typo.subtitle2">@context.Name</MudText>
+                                        </MudStack>
+                                        <MudText Typo="Typo.caption" Class="muted">This row uses Actual as the payment made this month.</MudText>
+                                    </MudStack>
+                                </MudTd>
+                                <MudTd DataLabel="Total debt">@FormatCurrency(context.DebtTotalAmount)</MudTd>
+                                <MudTd DataLabel="Initial paid">@FormatCurrency(context.InitialPaidAmount)</MudTd>
+                                <MudTd DataLabel="This month">@FormatCurrency(context.ActualAmount)</MudTd>
+                                <MudTd DataLabel="Remaining" Style="@GetDebtRemainingStyle(context)">@FormatCurrency(GetDebtRemaining(context))</MudTd>
+                                <MudTd DataLabel="Due">@context.DueDate?.ToString("dd MMM")</MudTd>
+                                <MudTd DataLabel="Notes">@context.Notes</MudTd>
+                                <MudTd DataLabel="Actions">
+                                    <MudStack Row="true" Spacing="1">
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => EditItem(context)">Edit</MudButton>
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" OnClick="() => DeleteItemAsync(context.Id)">Delete</MudButton>
+                                    </MudStack>
+                                </MudTd>
+                            </RowTemplate>
                         </MudTable>
                     }
                 </MudStack>
@@ -516,22 +552,22 @@
         }
 
         var currentUserId = GetCurrentUserId();
-            var saved = await Api.SaveFinanceItemAsync(new FinanceItem
-            {
-                Id = _draft.Id,
-                UserId = _draft.UserId == 0 ? currentUserId : _draft.UserId,
-                MonthKey = GetMonthKey(_selectedMonth),
-                Bucket = _draft.Bucket,
-                Name = _draft.Name.Trim(),
-                BudgetAmount = ParseMoney(_draft.BudgetAmountText),
-                ActualAmount = ParseMoney(_draft.ActualAmountText),
-                DebtTotalAmount = ParseMoney(_draft.DebtTotalAmountText),
-                InitialPaidAmount = ParseMoney(_draft.InitialPaidAmountText),
-                DueDate = _draft.DueDate,
-                Notes = _draft.Notes.Trim(),
-                IsShared = _draft.IsShared,
-                SortOrder = _draft.SortOrder
-            });
+        var saved = await Api.SaveFinanceItemAsync(new FinanceItem
+        {
+            Id = _draft.Id,
+            UserId = _draft.UserId == 0 ? currentUserId : _draft.UserId,
+            MonthKey = GetMonthKey(_selectedMonth),
+            Bucket = _draft.Bucket,
+            Name = _draft.Name.Trim(),
+            BudgetAmount = ParseMoney(_draft.BudgetAmountText),
+            ActualAmount = ParseMoney(_draft.ActualAmountText),
+            DebtTotalAmount = ParseMoney(_draft.DebtTotalAmountText),
+            InitialPaidAmount = ParseMoney(_draft.InitialPaidAmountText),
+            DueDate = _draft.DueDate,
+            Notes = _draft.Notes.Trim(),
+            IsShared = _draft.IsShared,
+            SortOrder = _draft.SortOrder
+        });
 
         _draft.Id = saved.Id;
         await LoadAsync();
@@ -868,7 +904,22 @@
 
     private static decimal GetRemaining(FinanceItem item) => item.BudgetAmount - item.ActualAmount;
 
-    private static decimal GetDebtRemaining(FinanceItem item) => item.DebtTotalAmount - item.InitialPaidAmount;
+    private static decimal GetDebtRemaining(FinanceItem item) => item.DebtRemainingAmount;
+
+    private static bool IsDebtTracked(FinanceItem item)
+    {
+        return item.DebtTotalAmount > 0m || item.InitialPaidAmount > 0m;
+    }
+
+    private List<FinanceItem> GetDebtItems()
+    {
+        return _items
+            .Where(IsDebtTracked)
+            .OrderByDescending(item => item.DebtRemainingAmount)
+            .ThenBy(item => item.SortOrder)
+            .ThenBy(item => item.Name)
+            .ToList();
+    }
 
     private string GetRemainingStyle(FinanceItem item)
     {
@@ -879,8 +930,8 @@
 
     private string GetDebtRemainingStyle(FinanceItem item)
     {
-        return GetDebtRemaining(item) < 0
-            ? "color:#c3252d;font-weight:700;"
+        return GetDebtRemaining(item) == 0m && item.DebtTotalAmount > 0m
+            ? "color:#3f7a46;font-weight:700;"
             : string.Empty;
     }
 
